@@ -1,219 +1,66 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>비트 연령별 통계</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <meta charset="UTF-8" />
+  <title>JINSUL 통계 계산기 선택</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: auto; }
-    h1 { color: #2c3e50; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; overflow-x: auto; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #f4f4f4; }
-    .warn { color: red; font-weight: bold; margin-top: 10px; }
-    .input-section { margin: 20px 0; }
-    tbody tr.whole { background-color: #eaf2f8; }
-    tbody tr.room1 { background-color: #fef9e7; }
-    tbody tr.room2 { background-color: #e8f8f5; }
-    tbody tr.room3 { background-color: #fbeee6; }
-    tbody tr.room4 { background-color: #f9ebea; }
-    tbody tr.room5 { background-color: #f5eef8; }
+    :root{
+      --bg:#f6f6f7; --text:#111827; --muted:#6b7280;
+      --card:#ffffff; --border:#e5e7eb; --accent1:#f59e0b; --accent2:#fbbf24;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif; color:var(--text); background:var(--bg);}
+    header{padding:36px 16px 0; text-align:center}
+    .logo{width:140px; height:auto; margin-bottom:10px;}
+    h1{margin:10px 0 8px; font-size:26px}
+    p.sub{margin:0; color:var(--muted); font-size:14px}
+    .wrap{max-width:960px; margin:0 auto; padding:20px 16px 50px}
+    .grid{display:grid; gap:20px; grid-template-columns:repeat(2,1fr); margin-top:24px}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; box-shadow:0 4px 10px rgba(0,0,0,.04); transition:transform .2s, box-shadow .2s;}
+    .card:hover{transform:translateY(-4px); box-shadow:0 8px 16px rgba(0,0,0,.08);}
+    .icon{font-size:40px; margin-bottom:10px;}
+    .card h2{margin:0 0 8px; font-size:18px}
+    .card p{margin:0 0 18px; color:var(--muted); font-size:14px}
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 16px; border-radius:10px; border:none; cursor:pointer;
+      background:linear-gradient(135deg, var(--accent1), var(--accent2));
+      color:white; font-weight:600; font-size:14px; text-decoration:none;
+      box-shadow:0 2px 6px rgba(245,158,11,.25);
+      transition:transform .2s, box-shadow .2s;
+    }
+    .btn:hover{transform:translateY(-2px); box-shadow:0 4px 10px rgba(245,158,11,.35);}
+    footer{margin-top:40px; text-align:center; color:var(--muted); font-size:12px}
+    @media (max-width:720px){ .grid{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
-  <h1>비트 연령별 통계 자동 계산기</h1>
-  <div class="input-section">
-    <label>✔️ 특정 키워드(예: PT만)를 입력하세요:</label><br>
-    <input type="text" id="keywordInput" placeholder="예: PT만" style="width: 200px; margin-top: 5px;" />
+  <header>
+    <!-- 🔶 로고 -->
+    <img src="2ffeab70-44c1-4e56-9968-743cbbd530f5.png" alt="JINSUL Logo" class="logo" />
+    <h1>JINSUL 통계 계산기 선택</h1>
+    <p class="sub">경험과 가치를 현실화하는 컨설팅</p>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <div class="card">
+        <div class="icon">📊</div>
+        <h2>비트 통계 계산기</h2>
+        <p>외래 엑셀/CSV를 업로드하여 초/재진, 주사, 내원 지표를 자동 계산합니다.</p>
+        <a class="btn" href="bitchart.html">🚀 비트 계산기 열기</a>
+      </div>
+
+      <div class="card">
+        <div class="icon">💉</div>
+        <h2>의사랑 통계 계산기</h2>
+        <p>진료실별 주사/내원 데이터 분석 및 연령·회차별 분포를 제공합니다.</p>
+        <a class="btn" href="ysarangchart.html">🩺 의사랑 계산기 열기</a>
+      </div>
+    </div>
+
+    <footer>© JINSUL · 경험과 가치를 현실화하는 컨설팅</footer>
   </div>
-  <input type="file" id="fileInput" accept=".xlsx,.csv" />
-  <div id="output"></div>
-  <div id="warning" class="warn"></div>
-
-  <script>
-    const AGE_ORDER = ["0~10대", "20대", "30대", "40대", "50대~64세", "65세이상", "전체"];
-
-    function getAgeGroup(raw) {
-      if (!raw || typeof raw !== 'string') return "전체";
-      const match = raw.match(/(\d{1,3})세/);
-      const age = match ? parseInt(match[1]) : NaN;
-      if (isNaN(age)) return "전체";
-      if (age <= 19) return "0~10대";
-      if (age <= 29) return "20대";
-      if (age <= 39) return "30대";
-      if (age <= 49) return "40대";
-      if (age <= 64) return "50대~64세";
-      return "65세이상";
-    }
-
-    function sortResult(a, b) {
-      if (a["구분"] !== b["구분"]) return a["구분"].localeCompare(b["구분"]);
-      return AGE_ORDER.indexOf(a["연령대"]) - AGE_ORDER.indexOf(b["연령대"]);
-    }
-
-    function renderTable(result) {
-      result.sort(sortResult);
-      const keys = Object.keys(result[0] || {}).filter(k => k !== '구분' && k !== '연령대');
-      if (keys.length === 0) {
-        document.getElementById('warning').innerText = '❗ 통계 데이터를 생성할 수 없습니다. 열 이름을 확인하세요.';
-        return;
-      }
-
-      let html = '<table><thead><tr><th>구분</th><th>연령대</th>' + keys.map(k => `<th>${k}</th>`).join('') + '</tr></thead><tbody>';
-      let prevGroup = null;
-      let groupRows = {};
-      result.forEach(row => {
-        groupRows[row["구분"]] = (groupRows[row["구분"]] || 0) + 1;
-      });
-
-      result.forEach(row => {
-        const className = row["구분"].includes("전체") ? "whole" :
-                          row["구분"].includes("1진료실") ? "room1" :
-                          row["구분"].includes("2진료실") ? "room2" :
-                          row["구분"].includes("3진료실") ? "room3" :
-                          row["구분"].includes("4진료실") ? "room4" :
-                          row["구분"].includes("5진료실") ? "room5" : "";
-
-        html += `<tr class="${className}">`;
-        if (row["구분"] !== prevGroup) {
-          html += `<td rowspan="${groupRows[row["구분"]]}">${row["구분"]}</td>`;
-          prevGroup = row["구분"];
-        }
-        html += `<td>${row["연령대"]}</td>` + keys.map(k => `<td>${row[k]}</td>`).join('') + '</tr>';
-      });
-
-      html += '</tbody></table>';
-      document.getElementById('output').innerHTML = html;
-    }
-
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      const keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
-      const reader = new FileReader();
-      const isCSV = file.name.endsWith('.csv');
-
-      reader.onload = function(evt) {
-        let rawData = [];
-        if (isCSV) {
-          const csv = evt.target.result;
-          const rows = csv.split(/\r?\n/).map(row => row.split(','));
-          rawData = rows;
-          parseData(rawData, keyword);
-        } else {
-          const data = new Uint8Array(evt.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          workbook.SheetNames.forEach(sheet => {
-            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheet], { header: 1, defval: "" });
-            rawData = rawData.concat(rows);
-          });
-          parseData(rawData, keyword);
-        }
-      };
-      if (isCSV) reader.readAsText(file);
-      else reader.readAsArrayBuffer(file);
-    });
-
-    function parseData(data, keyword) {
-      const headerIdx = data.findIndex(row => row.join('').includes("초/재") || row.join('').includes("챠트") || row.join('').includes("진료과"));
-      if (headerIdx === -1) {
-        document.getElementById('warning').innerText = '❗ 유효한 헤더를 찾을 수 없습니다.';
-        return;
-      }
-
-      const headers = data[headerIdx];
-      const body = data.slice(headerIdx + 1).filter(r => r.length > 1);
-      const df = body.map(row => Object.fromEntries(headers.map((h, i) => [h.trim(), row[i] || ""])));
-
-      const result = [];
-      const 재진조건 = ["재진", "물리치료내원", "진찰료 산정안함"];
-
-      const col = {};
-      headers.forEach(h => {
-        const l = h.toLowerCase();
-        if (l.includes("초") && l.includes("재")) col['초재'] = h;
-        else if (l.includes("차트") || l.includes("챠트") || l.includes("id")) col['차트'] = h;
-        else if (l.includes("진료") && l.includes("과") || l.includes("과목")) col['과'] = h;
-        else if (l.includes("마취")) col['마취'] = h;
-        else if (l.includes("메모")) col['메모'] = h;
-        else if (l.includes("나이") || l.includes("연령") || l.includes("생년") || l.includes("s/a")) col['연령'] = h;
-      });
-
-      const makeStat = (rows, label, ageGroup = "전체") => {
-        const 초진 = rows.filter(r => ["신환", "90일초진"].includes(r[col['초재']]));
-        const 초진차트 = [...new Set(초진.map(r => r[col['차트']]))];
-        const 재진 = rows.filter(r => 재진조건.includes(r[col['초재']])).length;
-        const 총 = rows.length;
-        const 주사 = 초진.filter(r => (r[col['마취']] || '').includes('●'));
-
-        const 주사차트 = [...new Set(주사.map(r => r[col['차트']]))];
-        const 주사기록 = rows.filter(r => 주사차트.includes(r[col['차트']]));
-
-        const 주사횟수 = {}, 내원횟수 = {};
-        주사기록.forEach(r => {
-          const id = r[col['차트']];
-          if ((r[col['마취']] || '').includes('●')) 주사횟수[id] = (주사횟수[id] || 0) + 1;
-          내원횟수[id] = (내원횟수[id] || 0) + 1;
-        });
-
-        const 평균주사 = Object.keys(주사횟수).length ? (Object.values(주사횟수).reduce((a,b)=>a+b,0)/Object.keys(주사횟수).length).toFixed(1) : 0;
-        const 평균내원 = Object.keys(내원횟수).length ? (Object.values(내원횟수).reduce((a,b)=>a+b,0)/Object.keys(내원횟수).length).toFixed(1) : 0;
-
-        const 초진기록 = rows.filter(r => 초진차트.includes(r[col['차트']]));
-        const 초진내원 = {};
-        초진기록.forEach(r => {
-          const id = r[col['차트']];
-          초진내원[id] = (초진내원[id] || 0) + 1;
-        });
-        const 평균초진내원 = Object.keys(초진내원).length ? (Object.values(초진내원).reduce((a,b)=>a+b,0)/Object.keys(초진내원).length).toFixed(1) : 0;
-        const 재내원율 = Object.values(초진내원).filter(v => v >= 2).length;
-
-        const 내원비율 = (n) => Math.round((Object.values(초진내원).filter(v => v === n).length / Object.keys(초진내원).length) * 100);
-        const 내원5이상 = Math.round((Object.values(초진내원).filter(v => v >= 5).length / Object.keys(초진내원).length) * 100);
-
-        const 키워드수 = col['메모'] && keyword ? rows.filter(r => (r[col['메모']] || '').toLowerCase().includes(keyword)).length : "";
-
-        result.push({
-          "구분": label,
-          "연령대": ageGroup,
-          "초진환자수": 초진차트.length,
-          "재진환자수": 재진,
-          "총환자수": 총,
-          "초진 주사 처방률": `${초진차트.length ? Math.round((주사.length/초진차트.length)*100) : 0}%`,
-          "초진주사 갯수": 주사.length,
-          "초진 주사환자 재진율": `${Math.round((Object.values(내원횟수).filter(v => v >= 2).length/Object.keys(내원횟수).length)*100)||0}%`,
-          "초진주사환자 평균 주사횟수": 평균주사,
-          "초진 주사환자 평균내원횟수": 평균내원,
-          "초진평균내원횟수": 평균초진내원,
-          "초진 재내원율": `${초진차트.length ? Math.round((재내원율/초진차트.length)*100):0}%`,
-          "1회 내원 비율": `${내원비율(1)}%`,
-          "2회 내원 비율": `${내원비율(2)}%`,
-          "3회 내원 비율": `${내원비율(3)}%`,
-          "4회 내원 비율": `${내원비율(4)}%`,
-          "5회 이상 내원 비율": `${내원5이상}%`,
-          "특정 키워드 포함 메모 수": 키워드수
-        });
-      };
-
-      const 연령열존재 = col['연령'];
-      const 전체 = df;
-
-      if (연령열존재) {
-        AGE_ORDER.slice(0, -1).forEach(a => makeStat(전체.filter(r => getAgeGroup(r[col['연령']]) === a), "전체", a));
-      }
-      makeStat(전체, "전체", "전체");
-
-      const 진료과들 = [...new Set(df.map(r => r[col['과']] || "기타"))];
-      진료과들.forEach(과 => {
-        const rows = df.filter(r => (r[col['과']] || "기타") === 과);
-        if (연령열존재) {
-          AGE_ORDER.slice(0, -1).forEach(a => makeStat(rows.filter(r => getAgeGroup(r[col['연령']]) === a), 과, a));
-        }
-        makeStat(rows, 과, "전체");
-      });
-
-      renderTable(result);
-    }
-  </script>
 </body>
 </html>
