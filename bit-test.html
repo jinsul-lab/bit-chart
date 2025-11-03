@@ -102,8 +102,9 @@
       if (age <= 29) return "20대";
       if (age <= 39) return "30대";
       if (age <= 49) return "40대";
-      if (age <= 64) return "50대~64세";
-      return "65세이상";
+      if (age <= 59) return "50대";
+      if (age <= 69) return "60대";
+      return "70대이상";
     }
 
     function parseAge(val) {
