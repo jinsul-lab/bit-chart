@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>비트 연령별 통계</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -15,33 +15,30 @@
     body{
       margin:0; background:var(--bg); color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;
-      padding:20px; max-width:1200px; margin-inline:auto;
     }
-    h1{margin:6px 0 14px; color:#0f172a; font-size:22px}
-    h1{
-  margin:6px 0 14px;
-  color:#0f172a;
-  font-size:22px;
-  text-align:center; /* ✅ 이 한 줄 추가 */
-}
-
+    header{padding:24px 16px 0; text-align:center;}
+    h1{margin:0 0 6px; font-size:24px; font-weight:800; color:#0f172a}
+    p.sub{margin:0; color:var(--muted); font-size:13px}
+    .wrap{padding:16px; max-width:1200px; margin:0 auto}
     .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-top:12px}
     .card-title{margin:0 0 8px; font-weight:700; color:#111827}
-    .input-section{margin:6px 0 0}
-    .input-section label{color:var(--muted); font-size:13px}
-    input[type="text"]{
-      width:200px; margin-top:6px; padding:8px 10px;
-      border:1px solid var(--border); border-radius:10px; background:#fff; color:var(--text);
+    .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr auto}
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    input[type=file], input[type=text]{
+      width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:#fff; color:var(--text);
     }
-    input[type="file"]{
-      margin-top:10px; padding:10px; width:100%;
-      border:1px dashed var(--border); border-radius:10px; background:#fff; color:var(--text);
+    button{
+      height:38px; border-radius:10px; border:1px solid var(--border);
+      background:radial-gradient(120% 120% at 0% 0%,rgba(34,211,238,.25),rgba(34,211,238,.1));
+      color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px;
     }
+    button:disabled{opacity:.5; cursor:not-allowed}
+    .warn{color:#b91c1c; font-weight:700; margin-top:10px}
 
+    /* 표 공통 스타일 */
     table{
       width:100%; border-collapse:collapse; table-layout:fixed;
-      margin-top:8px; background:var(--card); border:1px solid var(--border);
-      border-radius:12px; overflow:hidden;
+      background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden;
     }
     th, td{
       padding:10px 8px; text-align:center; word-break:keep-all; white-space:normal;
@@ -49,46 +46,62 @@
     }
     th{position:sticky; top:0; z-index:1; background:var(--thead); color:#0f172a}
     tbody tr:hover td{background:var(--hover)}
-    /* 룸 색 제거 */
+
+    /* 룸 구분 시각화 */
     tbody tr.whole, tbody tr.room1, tbody tr.room2, tbody tr.room3, tbody tr.room4, tbody tr.room5{ background:transparent !important; }
-    /* 룸 블록 구분선(첫 행 rowspan 셀에 두꺼운 상단선) */
     tbody td[rowspan]{ border-top:3px solid var(--group) !important; }
     tbody tr:first-child td[rowspan]{ border-top:1px solid var(--border) !important; }
     @supports(selector(tbody tr:has(td[rowspan]))){
       tbody tr:has(td[rowspan]) td{ border-top:3px solid var(--group) !important; }
       tbody tr:first-child:has(td[rowspan]) td{ border-top:1px solid var(--border) !important; }
     }
-    .warn{color:#b91c1c; font-weight:700; margin-top:10px}
-    @media (max-width:899px){ th,td{font-size:11px} }
+
+    @media (max-width:899px){
+      .grid{grid-template-columns:1fr}
+      th,td{font-size:11px}
+    }
   </style>
 </head>
 <body>
-  <h1>비트 연령별 통계 자동 계산기</h1>
+  <header>
+    <h1>비트 연령별 통계 자동 계산기</h1>
+    <p class="sub">진료실별 연령 통계 및 주사·내원 현황 자동 계산</p>
+  </header>
 
-  <div class="card">
-    <div class="input-section">
-      <label>✔️ 특정 키워드(예: PT만)를 입력하세요:</label><br />
-      <input type="text" id="keywordInput" placeholder="예: PT만" />
+  <div class="wrap">
+    <!-- 입력 카드 -->
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>특정 키워드 (예: PT만)</label>
+          <input type="text" id="keywordInput" placeholder="예: PT만" />
+        </div>
+        <div>
+          <label>파일 업로드 (.xlsx / .csv)</label>
+          <input type="file" id="fileInput" accept=".xlsx,.csv" />
+        </div>
+        <div style="display:flex;align-items:end;justify-content:flex-end;">
+          <button id="runBtn" onclick="document.getElementById('fileInput').click()">파일 선택</button>
+        </div>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 데이터는 브라우저 내에서만 처리됩니다.</p>
     </div>
-    <div class="input-section">
-      <label>파일 업로드:</label><br />
-      <input type="file" id="fileInput" accept=".xlsx,.csv" />
+
+    <!-- 요약 통계 -->
+    <div class="card table-card">
+      <h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
+      <div id="summaryOutput"></div>
+    </div>
+
+    <!-- 연령대별 통계 -->
+    <div class="card table-card">
+      <h3 class="card-title">연령대별 통계 (진료실별)</h3>
+      <div id="output"></div>
+      <div id="warning" class="warn"></div>
     </div>
   </div>
 
-  <!-- 요약 통계(전체/각 진료실) -->
-  <div class="card">
-    <h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
-    <div id="summaryOutput"></div>
-  </div>
-
-  <!-- 연령대별 통계 -->
-  <div class="card">
-    <h3 class="card-title">연령대별 통계 (진료실별)</h3>
-    <div id="output"></div>
-    <div id="warning" class="warn"></div>
-  </div>
-
+  <!-- JS 로직 (원본 그대로 유지) -->
   <script>
     /* ------------ 공통 유틸 ------------ */
     const AGE_ORDER = ["0~10대", "20대", "30대", "40대", "50대", "60대", "70대이상", "전체"];
@@ -119,7 +132,6 @@
       return AGE_ORDER.indexOf(a["연령대"]) - AGE_ORDER.indexOf(b["연령대"]);
     }
 
-    // 0, NaN, 빈값 → "-" 로 표시
     function formatCell(v) {
       if (v === null || v === undefined) return "-";
       const s = String(v).trim();
@@ -130,25 +142,22 @@
 
     /* ------------ 표 렌더: 요약 ------------ */
     function renderSummaryTable(allRows) {
-      // 연령대 === "전체" 만 추출
       const rows = allRows.filter(r => r["연령대"] === "전체");
       if (!rows.length) { document.getElementById('summaryOutput').innerHTML = ""; return; }
 
-      // '전체' → 숫자 진료실 순으로
       const orderRooms = ["전체","1진료실","2진료실","3진료실","4진료실","5진료실","6진료실","7진료실","8진료실","9진료실","10진료실"];
       rows.sort((a,b)=>{
         const ai = orderRooms.indexOf(a["구분"]); const bi = orderRooms.indexOf(b["구분"]);
         return (ai===-1)-(bi===-1) || ai-bi || a["구분"].localeCompare(b["구분"]);
       });
 
-      // ‘연령대’ 제외한 헤더(의사랑 레이아웃과 유사한 순서)
       const cols = [
         "구분","초진환자수","초진주사환자수","초진 주사처방률",
         "초진 주사환자 평균 주사횟수","초진 주사환자 평균내원횟수",
         "(18세▲)초진환자수","(18세▲)초진주사수","(18세▲)초진주사처방률",
         "초진 평균 내원횟수","초진 재내원율",
         "1회 내원 비율","2회 내원 비율","3회 내원 비율","4회 내원 비율","5회 내원 비율","6회 내원 비율","7회 내원 비율","8회 이상 내원 비율"
-      ].filter(c => c in rows[0]); // 안전하게 존재하는 컬럼만
+      ].filter(c => c in rows[0]);
 
       let thead = '<tr>' + cols.map(h=>`<th>${h}</th>`).join('') + '</tr>';
       let tbody = rows.map(r=>{
@@ -171,9 +180,7 @@
       let html = '<table><thead><tr><th>진료실</th><th>연령대</th>' + keys.map(k => `<th>${k}</th>`).join('') + '</tr></thead><tbody>';
       let prevGroup = null;
       let groupRows = {};
-      result.forEach(row => {
-        groupRows[row["구분"]] = (groupRows[row["구분"]] || 0) + 1;
-      });
+      result.forEach(row => { groupRows[row["구분"]] = (groupRows[row["구분"]] || 0) + 1; });
 
       result.forEach(row => {
         html += `<tr>`;
@@ -181,9 +188,7 @@
           html += `<td rowspan="${groupRows[row["구분"]]}">${row["구분"]}</td>`;
           prevGroup = row["구분"];
         }
-        html += `<td>${row["연령대"]}</td>`
-              + keys.map(k => `<td>${formatCell(row[k])}</td>`).join('')
-              + '</tr>';
+        html += `<td>${row["연령대"]}</td>` + keys.map(k => `<td>${formatCell(row[k])}</td>`).join('') + '</tr>';
       });
 
       html += '</tbody></table>';
@@ -249,7 +254,6 @@
         const 초진 = rows.filter(r => ["신환", "90일초진"].includes(r[col['초재']]));
         const 초진차트 = [...new Set(초진.map(r => r[col['차트']]))];
         const 재진 = rows.filter(r => 재진조건.includes(r[col['초재']])).length;
-        const 총 = rows.length;
         const 주사 = 초진.filter(r => (r[col['마취']] || '').includes('●'));
 
         const 주사차트 = [...new Set(주사.map(r => r[col['차트']]))];
@@ -283,10 +287,8 @@
           return Math.round((num / denom) * 100);
         };
 
-        // 키워드 메모 수
         const 키워드수 = col['메모'] && keyword ? rows.filter(r => (r[col['메모']] || '').toLowerCase().includes(keyword)).length : "";
 
-        // (18세▲) 성인 지표
         let adultRows = [];
         if (col['연령']) {
           adultRows = rows.filter(r => {
@@ -329,23 +331,20 @@
       const 연령열존재 = col['연령'];
       const 전체 = df;
 
-      // 전체(연령대별) + 전체(요약)
       if (연령열존재) {
         AGE_ORDER.slice(0, -1).forEach(a => makeStat(전체.filter(r => getAgeGroup(r[col['연령']]) === a), "전체", a));
       }
       makeStat(전체, "전체", "전체");
 
-      // 진료실(=과)별
       const 진료과들 = [...new Set(df.map(r => r[col['과']] || "기타"))];
       진료과들.forEach(과 => {
         const rows = df.filter(r => (r[col['과']] || "기타") === 과);
         if (연령열존재) {
           AGE_ORDER.slice(0, -1).forEach(a => makeStat(rows.filter(r => getAgeGroup(r[col['연령']]) === a), 과, a));
         }
-        makeStat(rows, 과, "전체"); // 요약 행
+        makeStat(rows, 과, "전체");
       });
 
-      // 렌더링
       renderSummaryTable(result);
       renderAgeTable(result);
     }
