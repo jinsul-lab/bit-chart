@@ -2,97 +2,96 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>/비트/ 연령별 통계</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>비트 연령별 통계</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <style>
     :root{
-      --bg:#f6f7fb;         /* 라이트 배경 */
-      --card:#ffffff;       /* 카드 배경 */
-      --line:#e6e8ef;       /* 테두리 */
-      --muted:#6b7280;      /* 보조글자 */
-      --text:#111827;       /* 본문 */
-      --head:#0f172a;       /* 타이틀 */
+      --bg:#f6f6f7; --card:#ffffff; --text:#111827; --muted:#6b7280;
+      --border:#e5e7eb; --thead:#f3f4f6; --hover:#f9fafb; --group:#cbd5e1;
     }
     *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;margin:0;background:var(--bg);color:var(--text)}
-    header{padding:28px 16px 0;text-align:center}
-    h1{margin:0 0 6px;font-size:28px;font-weight:800;color:var(--head)}
-    p.sub{margin:0;color:var(--muted);font-size:13px}
-
-    .wrap{padding:16px;max-width:1200px;margin:0 auto}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px;box-shadow:0 1px 0 rgba(16,24,40,.02)}
-
-    .grid{display:grid;gap:10px;grid-template-columns:1fr 1fr}
-    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    input[type=file],input[type=text]{width:100%;height:38px;padding:8px;border-radius:10px;border:1px solid var(--line);background:#fafbff}
-    .hint{color:var(--muted);font-size:12px;margin-top:6px}
-
-    .table-head{margin:0 0 8px;font-size:14px;color:var(--muted)}
-    .table-wrap{overflow:auto}
-
-    table{width:100%;border-collapse:collapse;table-layout:fixed;background:var(--card)}
-    th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:center;word-break:keep-all;white-space:normal;font-size:12.5px}
-    th{position:sticky;top:0;background:#f7f9ff;z-index:1}
-    tbody tr:hover td{background:#fbfdff}
-
-    /* ‘구분’(진료실/전체) 묶음을 시각적으로 구분 */
-    .room-sep td{border-top:3px solid var(--line)}
-    .room-a td{background:#fcfcfe}
-    .room-b td{background:#ffffff}
-
-    .warn{color:#d92d20;font-weight:600;margin-top:8px}
-
-    @media (max-width: 900px){
-      .grid{grid-template-columns:1fr}
-      th,td{font-size:12px}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;
+      padding:20px; max-width:1200px; margin-inline:auto;
     }
+    h1{margin:6px 0 14px; color:#0f172a; font-size:22px}
+    h1{
+  margin:6px 0 14px;
+  color:#0f172a;
+  font-size:22px;
+  text-align:center; /* ✅ 이 한 줄 추가 */
+}
+
+    .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-top:12px}
+    .card-title{margin:0 0 8px; font-weight:700; color:#111827}
+    .input-section{margin:6px 0 0}
+    .input-section label{color:var(--muted); font-size:13px}
+    input[type="text"]{
+      width:200px; margin-top:6px; padding:8px 10px;
+      border:1px solid var(--border); border-radius:10px; background:#fff; color:var(--text);
+    }
+    input[type="file"]{
+      margin-top:10px; padding:10px; width:100%;
+      border:1px dashed var(--border); border-radius:10px; background:#fff; color:var(--text);
+    }
+
+    table{
+      width:100%; border-collapse:collapse; table-layout:fixed;
+      margin-top:8px; background:var(--card); border:1px solid var(--border);
+      border-radius:12px; overflow:hidden;
+    }
+    th, td{
+      padding:10px 8px; text-align:center; word-break:keep-all; white-space:normal;
+      border-bottom:1px solid var(--border); font-size:12px;
+    }
+    th{position:sticky; top:0; z-index:1; background:var(--thead); color:#0f172a}
+    tbody tr:hover td{background:var(--hover)}
+    /* 룸 색 제거 */
+    tbody tr.whole, tbody tr.room1, tbody tr.room2, tbody tr.room3, tbody tr.room4, tbody tr.room5{ background:transparent !important; }
+    /* 룸 블록 구분선(첫 행 rowspan 셀에 두꺼운 상단선) */
+    tbody td[rowspan]{ border-top:3px solid var(--group) !important; }
+    tbody tr:first-child td[rowspan]{ border-top:1px solid var(--border) !important; }
+    @supports(selector(tbody tr:has(td[rowspan]))){
+      tbody tr:has(td[rowspan]) td{ border-top:3px solid var(--group) !important; }
+      tbody tr:first-child:has(td[rowspan]) td{ border-top:1px solid var(--border) !important; }
+    }
+    .warn{color:#b91c1c; font-weight:700; margin-top:10px}
+    @media (max-width:899px){ th,td{font-size:11px} }
   </style>
 </head>
 <body>
-  <header>
-    <h1>/비트/ 연령별 통계</h1>
-    <p class="sub">업로드된 자료를 브라우저 내에서만 집계합니다. (개인정보 저장 없음)</p>
-  </header>
+  <h1>비트 연령별 통계 자동 계산기</h1>
 
-  <div class="wrap">
-    <div class="card">
-      <div class="grid">
-        <div>
-          <label>파일 업로드</label>
-          <input type="file" id="fileInput" accept=".xlsx,.csv" />
-          <p class="hint">.xlsx 또는 .csv 가능</p>
-        </div>
-        <div>
-          <label>특정 키워드(예: PT만)</label>
-          <input type="text" id="keywordInput" placeholder="예: PT만" />
-          <p class="hint">접수 메모에 포함된 키워드 정밀 일치(소문자 처리)로 집계</p>
-        </div>
-      </div>
-      <p class="warn" id="warning"></p>
+  <div class="card">
+    <div class="input-section">
+      <label>✔️ 특정 키워드(예: PT만)를 입력하세요:</label><br />
+      <input type="text" id="keywordInput" placeholder="예: PT만" />
     </div>
-
-    <div class="card">
-      <h3 class="table-head">연령대별 통계 (진료실별)</h3>
-      <div class="table-wrap" id="output"></div>
+    <div class="input-section">
+      <label>파일 업로드:</label><br />
+      <input type="file" id="fileInput" accept=".xlsx,.csv" />
     </div>
   </div>
 
-  <script>
-    /* ===== 공통 유틸 ===== */
-    const AGE_ORDER = ["0~10대", "20대", "30대", "40대", "50대~64세", "65세이상", "전체"];
-    const $ = (s)=>document.querySelector(s);
+  <!-- 요약 통계(전체/각 진료실) -->
+  <div class="card">
+    <h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
+    <div id="summaryOutput"></div>
+  </div>
 
-    // 보기 좋게: 0/0%/NaN%/빈값 → '-'
-    function fmt(v){
-      if(v===null||v===undefined||v==='') return '-';
-      if(typeof v==='number'){ if(!isFinite(v)||v===0) return '-'; return String(v); }
-      const s=String(v);
-      if(s==='0'||s==='0.0'||s==='0.00') return '-';
-      if(/^(NaN|Infinity)/i.test(s)) return '-';
-      if(/^(0|NaN)(\.\d+)?%$/.test(s)) return '-';
-      return s;
-    }
+  <!-- 연령대별 통계 -->
+  <div class="card">
+    <h3 class="card-title">연령대별 통계 (진료실별)</h3>
+    <div id="output"></div>
+    <div id="warning" class="warn"></div>
+  </div>
+
+  <script>
+    /* ------------ 공통 유틸 ------------ */
+    const AGE_ORDER = ["0~10대", "20대", "30대", "40대", "50대~64세", "65세이상", "전체"];
 
     function getAgeGroup(raw) {
       if (!raw || typeof raw !== 'string') return "전체";
@@ -107,55 +106,96 @@
       return "65세이상";
     }
 
+    function parseAge(val) {
+      if (val === null || val === undefined) return null;
+      const s = String(val).trim();
+      const m = s.match(/(\d{1,3})/);
+      return m ? Math.min(150, parseInt(m[1], 10)) : null;
+    }
+
     function sortResult(a, b) {
       if (a["구분"] !== b["구분"]) return a["구분"].localeCompare(b["구분"]);
       return AGE_ORDER.indexOf(a["연령대"]) - AGE_ORDER.indexOf(b["연령대"]);
     }
 
-    function renderTable(result) {
+    // 0, NaN, 빈값 → "-" 로 표시
+    function formatCell(v) {
+      if (v === null || v === undefined) return "-";
+      const s = String(v).trim();
+      if (s === "" || s === "0" || s === "0.0" || s === "0%" || /^nan/i.test(s) || /^nan%$/i.test(s)) return "-";
+      if (!isNaN(Number(s)) && Number(s) === 0) return "-";
+      return s;
+    }
+
+    /* ------------ 표 렌더: 요약 ------------ */
+    function renderSummaryTable(allRows) {
+      // 연령대 === "전체" 만 추출
+      const rows = allRows.filter(r => r["연령대"] === "전체");
+      if (!rows.length) { document.getElementById('summaryOutput').innerHTML = ""; return; }
+
+      // '전체' → 숫자 진료실 순으로
+      const orderRooms = ["전체","1진료실","2진료실","3진료실","4진료실","5진료실","6진료실","7진료실","8진료실","9진료실","10진료실"];
+      rows.sort((a,b)=>{
+        const ai = orderRooms.indexOf(a["구분"]); const bi = orderRooms.indexOf(b["구분"]);
+        return (ai===-1)-(bi===-1) || ai-bi || a["구분"].localeCompare(b["구분"]);
+      });
+
+      // ‘연령대’ 제외한 헤더(의사랑 레이아웃과 유사한 순서)
+      const cols = [
+        "구분","초진환자수","초진주사환자수","초진 주사처방률",
+        "초진 주사환자 평균 주사횟수","초진 주사환자 평균내원횟수",
+        "(18세▲)초진환자수","(18세▲)초진주사수","(18세▲)초진주사처방률",
+        "초진 평균 내원횟수","초진 재내원율",
+        "1회 내원 비율","2회 내원 비율","3회 내원 비율","4회 내원 비율","5회 내원 비율","6회 내원 비율","7회 내원 비율","8회 이상 내원 비율"
+      ].filter(c => c in rows[0]); // 안전하게 존재하는 컬럼만
+
+      let thead = '<tr>' + cols.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+      let tbody = rows.map(r=>{
+        return '<tr>' + cols.map(c=>`<td>${formatCell(r[c])}</td>`).join('') + '</tr>';
+      }).join('');
+
+      document.getElementById('summaryOutput').innerHTML =
+        `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+    }
+
+    /* ------------ 표 렌더: 연령대 ------------ */
+    function renderAgeTable(result) {
       result.sort(sortResult);
       const keys = Object.keys(result[0] || {}).filter(k => k !== '구분' && k !== '연령대');
       if (keys.length === 0) {
-        $('#warning').innerText = '❗ 통계 데이터를 생성할 수 없습니다. 열 이름을 확인하세요.';
+        document.getElementById('warning').innerText = '❗ 통계 데이터를 생성할 수 없습니다. 열 이름을 확인하세요.';
         return;
       }
 
-      let thead = '<tr><th>구분</th><th>연령대</th>' + keys.map(k => `<th>${k}</th>`).join('') + '</tr>';
-
-      // 구분(진료실/전체) 묶음별로 배경 교차 + 상단 굵은 라인
-      let tbody = '';
+      let html = '<table><thead><tr><th>진료실</th><th>연령대</th>' + keys.map(k => `<th>${k}</th>`).join('') + '</tr></thead><tbody>';
       let prevGroup = null;
-      let alt = false; // 교차 배경
-      const groupRows = {};
-      result.forEach(row => { groupRows[row["구분"]] = (groupRows[row["구분"]] || 0) + 1; });
-
+      let groupRows = {};
       result.forEach(row => {
-        const isNewGroup = row["구분"] !== prevGroup;
-        if (isNewGroup) { alt = !alt; prevGroup = row["구분"]; }
-        const cls = `${isNewGroup?'room-sep ':''}${alt?'room-a':'room-b'}`;
-
-        let cells = '';
-        // 첫 행에만 rowspan으로 묶은 구분 표시
-        if (groupRows[row["구분"]] > 0) {
-          if (!tbody.endsWith(`data-grp="${row["구분"]}"`)) {
-            cells += `<td rowspan="${groupRows[row["구분"]]}">${row["구분"]}</td>`;
-          }
-        }
-        cells += `<td>${fmt(row["연령대"])}</td>`;
-        keys.forEach(k => cells += `<td>${fmt(row[k])}</td>`);
-        tbody += `<tr class="${cls}">${cells}</tr>`;
-        groupRows[row["구분"]]--; // 소진
+        groupRows[row["구분"]] = (groupRows[row["구분"]] || 0) + 1;
       });
 
-      $('#output').innerHTML = `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+      result.forEach(row => {
+        html += `<tr>`;
+        if (row["구분"] !== prevGroup) {
+          html += `<td rowspan="${groupRows[row["구분"]]}">${row["구분"]}</td>`;
+          prevGroup = row["구분"];
+        }
+        html += `<td>${row["연령대"]}</td>`
+              + keys.map(k => `<td>${formatCell(row[k])}</td>`).join('')
+              + '</tr>';
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('output').innerHTML = html;
     }
 
-    /* ===== 파일 처리 & 집계 ===== */
+    /* ------------ 파일 로드 ------------ */
     document.getElementById('fileInput').addEventListener('change', function(e) {
       const file = e.target.files[0];
       const keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
+      if (!file) return;
       const reader = new FileReader();
-      const isCSV = file && file.name.endsWith('.csv');
+      const isCSV = file.name.endsWith('.csv');
 
       reader.onload = function(evt) {
         let rawData = [];
@@ -178,13 +218,11 @@
       else reader.readAsArrayBuffer(file);
     });
 
+    /* ------------ 본 계산 ------------ */
     function parseData(data, keyword) {
-      $('#warning').innerText='';
-      const headerIdx = data.findIndex(row =>
-        row.join('').includes("초/재") || row.join('').includes("챠트") || row.join('').includes("진료과")
-      );
+      const headerIdx = data.findIndex(row => row.join('').includes("초/재") || row.join('').includes("챠트") || row.join('').includes("진료과"));
       if (headerIdx === -1) {
-        $('#warning').innerText = '❗ 유효한 헤더를 찾을 수 없습니다.';
+        document.getElementById('warning').innerText = '❗ 유효한 헤더를 찾을 수 없습니다.';
         return;
       }
 
@@ -206,7 +244,7 @@
         else if (l.includes("나이") || l.includes("연령") || l.includes("생년") || l.includes("s/a")) col['연령'] = h;
       });
 
-      const makeStat = (rows, label, ageGroup = "전체") => {
+      function makeStat(rows, label, ageGroup = "전체") {
         const 초진 = rows.filter(r => ["신환", "90일초진"].includes(r[col['초재']]));
         const 초진차트 = [...new Set(초진.map(r => r[col['차트']]))];
         const 재진 = rows.filter(r => 재진조건.includes(r[col['초재']])).length;
@@ -232,50 +270,83 @@
           const id = r[col['차트']];
           초진내원[id] = (초진내원[id] || 0) + 1;
         });
+
         const 평균초진내원 = Object.keys(초진내원).length ? (Object.values(초진내원).reduce((a,b)=>a+b,0)/Object.keys(초진내원).length).toFixed(1) : 0;
         const 재내원수 = Object.values(초진내원).filter(v => v >= 2).length;
 
-        const 내원비율 = (n) => Math.round((Object.values(초진내원).filter(v => v === n).length / Object.keys(초진내원).length) * 100);
-        const 내원5이상 = Math.round((Object.values(초진내원).filter(v => v >= 5).length / Object.keys(초진내원).length) * 100);
+        const 비율 = (n, op="eq") => {
+          const denom = Object.keys(초진내원).length;
+          if (!denom) return 0;
+          const arr = Object.values(초진내원);
+          const num = op==="ge" ? arr.filter(v => v >= n).length : arr.filter(v => v === n).length;
+          return Math.round((num / denom) * 100);
+        };
 
+        // 키워드 메모 수
         const 키워드수 = col['메모'] && keyword ? rows.filter(r => (r[col['메모']] || '').toLowerCase().includes(keyword)).length : "";
+
+        // (18세▲) 성인 지표
+        let adultRows = [];
+        if (col['연령']) {
+          adultRows = rows.filter(r => {
+            const a = parseAge(r[col['연령']]);
+            return a !== null && a >= 18;
+          });
+        }
+        const adultFirst = adultRows.filter(r => ["신환", "90일초진"].includes(r[col['초재']]));
+        const adultFirstCharts = [...new Set(adultFirst.map(r => r[col['차트']]))];
+        const adultInj = adultFirst.filter(r => (r[col['마취']] || '').includes('●'));
+        const adultRate = adultFirstCharts.length
+          ? Math.round((adultInj.length / adultFirstCharts.length) * 100) + '%'
+          : '-';
 
         result.push({
           "구분": label,
           "연령대": ageGroup,
           "초진환자수": 초진차트.length,
-          "재진환자수": 재진,
-          "총환자수": 총,
-          "초진 주사 처방률": `${초진차트.length ? Math.round((주사.length/초진차트.length)*100) : 0}%`,
-          "초진주사 갯수": 주사.length,
-          "초진 주사환자 재진율": `${Math.round((Object.values(내원횟수).filter(v => v >= 2).length/Object.keys(내원횟수).length)*100)||0}%`,
-          "초진주사환자 평균 주사횟수": 평균주사,
+          "초진주사환자수": 주사.length,
+          "초진 주사처방률": `${초진차트.length ? Math.round((주사.length/초진차트.length)*100) : 0}%`,
+          "초진 주사환자 평균 주사횟수": 평균주사,
           "초진 주사환자 평균내원횟수": 평균내원,
-          "초진평균내원횟수": 평균초진내원,
+          "(18세▲)초진환자수": adultFirstCharts.length,
+          "(18세▲)초진주사수": adultInj.length,
+          "(18세▲)초진주사처방률": adultRate,
+          "초진 평균 내원횟수": 평균초진내원,
           "초진 재내원율": `${초진차트.length ? Math.round((재내원수/초진차트.length)*100):0}%`,
-          "1회 내원 비율": `${내원비율(1)}%`,
-          "2회 내원 비율": `${내원비율(2)}%`,
-          "3회 내원 비율": `${내원비율(3)}%`,
-          "4회 내원 비율": `${내원비율(4)}%`,
-          "5회 이상 내원 비율": `${내원5이상}%`,
+          "1회 내원 비율": `${비율(1)}%`,
+          "2회 내원 비율": `${비율(2)}%`,
+          "3회 내원 비율": `${비율(3)}%`,
+          "4회 내원 비율": `${비율(4)}%`,
+          "5회 내원 비율": `${비율(5)}%`,
+          "6회 내원 비율": `${비율(6)}%`,
+          "7회 내원 비율": `${비율(7)}%`,
+          "8회 이상 내원 비율": `${비율(8,"ge")}%`,
           "특정 키워드 포함 메모 수": 키워드수
         });
-      };
+      }
 
-      // 전체 & 진료실별 + (있다면) 연령대 분해
-      const 연령열 = col['연령'];
+      const 연령열존재 = col['연령'];
       const 전체 = df;
-      if (연령열) AGE_ORDER.slice(0, -1).forEach(a => makeStat(전체.filter(r => getAgeGroup(r[col['연령']]) === a), "전체", a));
+
+      // 전체(연령대별) + 전체(요약)
+      if (연령열존재) {
+        AGE_ORDER.slice(0, -1).forEach(a => makeStat(전체.filter(r => getAgeGroup(r[col['연령']]) === a), "전체", a));
+      }
       makeStat(전체, "전체", "전체");
 
+      // 진료실(=과)별
       const 진료과들 = [...new Set(df.map(r => r[col['과']] || "기타"))];
       진료과들.forEach(과 => {
         const rows = df.filter(r => (r[col['과']] || "기타") === 과);
-        if (연령열) AGE_ORDER.slice(0, -1).forEach(a => makeStat(rows.filter(r => getAgeGroup(r[col['연령']]) === a), 과, a));
-        makeStat(rows, 과, "전체");
+        if (연령열존재) {
+          AGE_ORDER.slice(0, -1).forEach(a => makeStat(rows.filter(r => getAgeGroup(r[col['연령']]) === a), 과, a));
+        }
+        makeStat(rows, 과, "전체"); // 요약 행
       });
 
-      renderTable(result);
+      // 렌더링
+      renderSummaryTable(result);
+      renderAgeTable(result);
     }
   </script>
 </body>
