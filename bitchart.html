@@ -91,7 +91,7 @@
 
   <script>
     /* ------------ 공통 유틸 ------------ */
-    const AGE_ORDER = ["0~10대", "20대", "30대", "40대", "50대~64세", "65세이상", "전체"];
+    const AGE_ORDER = ["0~10대", "20대", "30대", "40대", "50대", "60대", "70대이상", "전체"];
 
     function getAgeGroup(raw) {
       if (!raw || typeof raw !== 'string') return "전체";
@@ -102,8 +102,9 @@
       if (age <= 29) return "20대";
       if (age <= 39) return "30대";
       if (age <= 49) return "40대";
-      if (age <= 64) return "50대~64세";
-      return "65세이상";
+      if (age <= 59) return "50대";
+      if (age <= 69) return "60대";
+      return "70대이상";
     }
 
     function parseAge(val) {
