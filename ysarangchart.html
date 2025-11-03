@@ -235,6 +235,7 @@
           '초진 주사처방률':toPercent(inj.length,total.length),
           '초진 주사환자 평균 주사횟수':avgInj.toFixed(1),
           '초진 주사환자 평균내원횟수':avgVisitAmongInj.toFixed(1),
+          '초진 주사환자 재진률(2회 이상)':toPercent(revisit2pInj,inj.length),
           '(18세▲)초진환자수':adult.length,
           '(18세▲)초진주사수':adultInj.length,
           '(18세▲)초진주사처방률':toPercent(adultInj.length,adult.length),
