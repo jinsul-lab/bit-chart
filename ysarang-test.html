@@ -74,20 +74,17 @@
       <div class="grid">
         <div>
           <label>초진 파일(진료실별 또는 담당의별)</label>
-          <label>진료실별 또는 담당의별로 초진 파일을 받아주세요</label>
           <label>🚫진료실이 여러개면 꼭! 진료실별 초진 파일 받아주세요🚫</label>
           <input type="file" id="clinicFiles" multiple accept=".xlsx,.xls" />
         </div>
         <div>
           <label>주사 파일</label>
           <label>리도카인, 엠카인 등 병원에서 쓰는 마취제 받아주세요</label>
-          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>     
           <input type="file" id="bFile" accept=".xlsx,.xls" />
         </div>
         <div>
           <label>총 환자(초진+재진)</label>
           <label>초진, 재진 진찰료 파일 각각 받아서 1개로 합쳐도 됩니다❗</label>
-          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
           <input type="file" id="vFile" accept=".xlsx,.xls" />
         </div>
         <div class="right">
@@ -283,25 +280,25 @@
           '초진환자수':total.length,
           '초진주사환자수':inj.length,
           '초진 주사처방률':toPercent(inj.length,total.length),
-          '초진 주사 평균 내원 횟수':inj.length?avgInj.toFixed(1):'-',
+          '초진 주사환자 평균 주사횟수':inj.length?avgInj.toFixed(1):'-',
           '초진 주사환자 평균내원횟수':inj.length?avgVisitAmongInj.toFixed(1):'-',
-          '초진 주사 재진율':inj.length?toPercent(revisit2pInj,inj.length):'-',
-          '(18세▲)초진수':adult.length,
+          '초진 주사환자 재진률(2회 이상)':inj.length?toPercent(revisit2pInj,inj.length):'-',
+          '(18세▲)초진환자수':adult.length,
           '(18세▲)초진주사수':adultInj.length,
           '(18세▲)초진주사처방률':adult.length?toPercent(adultInj.length,adult.length):'-',
           '초진 평균 내원횟수':total.length?visitAvgAll.toFixed(1):'-',
           '초진 재내원율':toPercent(revisit2pAll,total.length),
-          '1회 주사':toPercent(cnt1,total.length),
-          '2회 주사':toPercent(cnt2,total.length),
-          '3회 주사':toPercent(cnt3,total.length),
-          '4회 주사':toPercent(cnt4,total.length),
-          '5회 주사':toPercent(cnt5,total.length),
-          '6회 주사':toPercent(cnt6,total.length),
-          '7회 주사':toPercent(cnt7,total.length),
-          '8회 이상 주사':toPercent(cnt8p,total.length)
+          '1회 내원율':toPercent(cnt1,total.length),
+          '2회 내원율':toPercent(cnt2,total.length),
+          '3회 내원율':toPercent(cnt3,total.length),
+          '4회 내원율':toPercent(cnt4,total.length),
+          '5회 내원율':toPercent(cnt5,total.length),
+          '6회 내원율':toPercent(cnt6,total.length),
+          '7회 내원율':toPercent(cnt7,total.length),
+          '8회 이상 내원율':toPercent(cnt8p,total.length)
         });
       }
-      const order=['1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실','전체'];
+      const order=['전체','1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실'];
       result.sort((a,b)=>{const ai=order.indexOf(a['구분']),bi=order.indexOf(b['구분']);return (ai==-1)-(bi==-1)||ai-bi||a['구분'].localeCompare(b['구분'])});
       return result;
     }
@@ -309,8 +306,8 @@
     function computeAgeBandStats(merged){
       const byRoomBand={};
       merged.forEach(r=>{ const band=getAgeBand(r.age); (byRoomBand[r.room]??=( {} ))[band]??=[]; byRoomBand[r.room][band].push(r); });
-      const orderRooms=['1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실','전체'];
-      const orderBands=['0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상','전체'];
+      const orderRooms=['1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실'];
+      const orderBands=['전체','0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상'];
       const rows=[];
       const roomKeys=Object.keys(byRoomBand).sort((a,b)=>{const ai=orderRooms.indexOf(a),bi=orderRooms.indexOf(b);if(ai===-1&&bi===-1)return a.localeCompare(b);if(ai===-1)return 1;if(bi===-1)return -1;return ai-bi});
       for(const room of roomKeys){
@@ -325,20 +322,20 @@
           rows.push({
             '진료실':room,
             '연령대':'전체',
-            '초진':allArr.length,
-            '초진주사수':injAllN,
-            '초진 주사 처방률':toPercent(injAllN,allArr.length),
+            '초진환자수':allArr.length,
+            '초진주사환자수':injAllN,
+            '초진 주사처방률':toPercent(injAllN,allArr.length),
             '초진 평균 내원횟수':avgVisitAll.toFixed(1),
             '초진 재내원율(2회 이상)':toPercent(revisit2pAll,allArr.length),
-            '초진 주사 평균 내원 횟수':injAllN?avgInjAll.toFixed(1):'-',
-            '1회 내원율':rateA(1),
-            '2회 내원율':rateA(2),
-            '3회 내원율':rateA(3),
-            '4회 내원율':rateA(4),
-            '5회 내원율':rateA(5),
-            '6회 내원율':rateA(6),
-            '7회 내원율':rateA(7),
-            '8회 내원율':rateA(8)
+            '초진 주사환자 평균 주사횟수':injAllN?avgInjAll.toFixed(1):'-',
+            '주사 1회(%)':rateA(1),
+            '2회(%)':rateA(2),
+            '3회(%)':rateA(3),
+            '4회(%)':rateA(4),
+            '5회(%)':rateA(5),
+            '6회(%)':rateA(6),
+            '7회(%)':rateA(7),
+            '8회 이상(%)':rateA(8)
           });
         }
         const bands=byRoomBand[room];
@@ -354,20 +351,20 @@
           rows.push({
             '진료실':room,
             '연령대':band,
-            '초진':arr.length,
-            '초진주사수':injN,
-            '초진 주사 처방률':toPercent(injN,arr.length),
+            '초진환자수':arr.length,
+            '초진주사환자수':injN,
+            '초진 주사처방률':toPercent(injN,arr.length),
             '초진 평균 내원횟수':avgVisit.toFixed(1),
             '초진 재내원율(2회 이상)':toPercent(revisit2p,arr.length),
-            '초진 주사 평균 내원 횟수':injN?avgInj.toFixed(1):'-',
-            '1회 내원율':rateA(1),
-            '2회 내원율':rateA(2),
-            '3회 내원율':rateA(3),
-            '4회 내원율':rateA(4),
-            '5회 내원율':rateA(5),
-            '6회 내원율':rateA(6),
-            '7회 내원율':rateA(7),
-            '8회 내원율':rateA(8)
+            '초진 주사환자 평균 주사횟수':injN?avgInj.toFixed(1):'-',
+            '주사 1회(%)':rate(1),
+            '2회(%)':rate(2),
+            '3회(%)':rate(3),
+            '4회(%)':rate(4),
+            '5회(%)':rate(5),
+            '6회(%)':rate(6),
+            '7회(%)':rate(7),
+            '8회 이상(%)':rate(8)
           });
         }
       }
@@ -389,7 +386,7 @@
       if (!data.length) return '';
       const headers = Object.keys(data[0]);
       const isCompact = !!opts.compact;
-      const distCols = ['주사 1회 주사','2회 주사','3회 주사','4회 주사','5회 주사','6회 주사','7회 주사','8회 이상'];
+      const distCols = ['주사 1회(%)','2회(%)','3회(%)','4회(%)','5회(%)','6회(%)','7회(%)','8회 이상(%)'];
 
       let thead = '<tr><th>진료실</th>';
       headers.slice(1).forEach(h=>{
