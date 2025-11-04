@@ -12,10 +12,8 @@
       --accent:#22d3ee;
     }
     *{box-sizing:border-box}
-    body{
-      margin:0; background:var(--bg); color:var(--text);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;
-    }
+    body{ margin:0; background:var(--bg); color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;}
     header{padding:24px 16px 0; text-align:center;}
     h1{margin:0 0 6px; font-size:24px; font-weight:800; color:#0f172a}
     p.sub{margin:0; color:var(--muted); font-size:13px}
@@ -25,28 +23,19 @@
     .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr auto}
     label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
     input[type=file]{width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:#fff; color:var(--text)}
-    button{
-      height:38px; border-radius:10px; border:1px solid var(--border);
+    button{ height:38px; border-radius:10px; border:1px solid var(--border);
       background:radial-gradient(120% 120% at 0% 0%,rgba(34,211,238,.25),rgba(34,211,238,.1));
-      color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px;
-    }
+      color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px; }
     button:disabled{opacity:.5; cursor:not-allowed}
     .right{display:flex; gap:8px; justify-content:flex-end}
-
     .summary{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:6px}
     .metric{padding:12px; border-radius:12px; background:#fff; border:1px solid var(--border)}
     .metric h3{margin:0; font-size:12px; color:var(--muted)}
     .metric p{margin:6px 0 0; font-size:22px; font-weight:800}
-
     .table-card{overflow:auto; margin-top:10px}
-    table{
-      width:100%; border-collapse:collapse; table-layout:fixed;
-      background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden;
-    }
-    th,td{
-      border-bottom:1px solid var(--border);
-      padding:10px 8px; text-align:center; word-break:keep-all; white-space:normal; font-size:12px;
-    }
+    table{ width:100%; border-collapse:collapse; table-layout:fixed;
+      background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    th,td{ border-bottom:1px solid var(--border); padding:10px 8px; text-align:center; word-break:keep-all; white-space:normal; font-size:12px; }
     th{position:sticky; top:0; background:var(--thead); z-index:1; color:#0f172a}
     tbody tr:hover td{background:var(--hover)}
     tbody td[rowspan]{ border-top:3px solid var(--group) !important; }
@@ -55,24 +44,22 @@
       tbody tr:has(td[rowspan]) td{ border-top:3px solid var(--group) !important; }
       tbody tr:first-child:has(td[rowspan]) td{ border-top:1px solid var(--border) !important; }
     }
-
-    .compact table thead .dist-col{display:none}
-    .compact table tbody .dist-col{display:none}
-    .compact table thead .dist-merged{display:table-cell}
-    .compact table tbody .dist-merged{display:table-cell}
+    .compact table thead .dist-col,.compact table tbody .dist-col{display:none}
+    .compact table thead .dist-merged,.compact table tbody .dist-merged{display:table-cell}
     .dist-merged{display:none}
-
     @media (max-width: 899px){
       .grid{grid-template-columns:1fr}
       .summary{grid-template-columns:1fr 1fr}
       th,td{font-size:11px}
     }
+    .hint{margin-top:6px; color:#6b7280; font-size:12px}
+    .pill{display:inline-block; padding:2px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; font-size:11px; margin-right:6px}
   </style>
 </head>
 <body>
   <header>
     <h1>의사랑 연령별 통계</h1>
-    <p class="sub">⚡의사랑 사용자 통계에서 초진 파일, 주사 파일, 총 환자 파일을 받아주세요.</p>
+    <p class="sub">⚡의사랑 사용자 통계에서 초진 파일(진료실별/담당의별), 주사 파일, 총 환자(초진+재진) 파일을 올려주세요.</p>
   </header>
 
   <div class="wrap">
@@ -80,20 +67,17 @@
       <div class="grid">
         <div>
           <label>초진 파일(진료실별 또는 담당의별)</label>
-          <label>진료실별 또는 담당의별로 초진 파일을 받아주세요</label>
-          <label>🚫진료실이 여러개면 꼭! 진료실별 초진 파일 받아주세요🚫</label>
+          <label>여러 진료실이면 <b>진료실별 파일</b>로 각각 업로드</label>
           <input type="file" id="clinicFiles" multiple accept=".xlsx,.xls" />
         </div>
         <div>
           <label>주사 파일</label>
-          <label>리도카인, 엠카인 등 병원에서 쓰는 마취제 받아주세요</label>
-          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
+          <label>리도카인/엠카인 등 마취제 처방내역</label>
           <input type="file" id="bFile" accept=".xlsx,.xls" />
         </div>
         <div>
           <label>총 환자(초진+재진)</label>
-          <label>초진, 재진 진찰료 파일 각각 받아서 1개로 합쳐도 됩니다❗</label>
-          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
+          <label>초진/재진 진찰료 두 파일 합쳐도 됩니다</label>
           <input type="file" id="vFile" accept=".xlsx,.xls" />
         </div>
         <div class="right">
@@ -105,7 +89,8 @@
         <button id="downloadBtn" disabled>결과 다운로드(.xlsx)</button>
         <button id="clearBtn">초기화</button>
       </div>
-      <p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 파일은 브라우저 내에서만 처리됩니다.</p>
+      <div class="hint" id="detected"></div>
+      <p class="hint">⚠️ 모든 파일은 브라우저 내에서만 처리됩니다.</p>
     </div>
 
     <div class="summary" id="summary" style="display:none">
@@ -129,10 +114,19 @@
   <script>
     const $ = (sel) => document.querySelector(sel);
 
-    /* ===== 유틸 ===== */
+    /* ===== 공통 유틸 ===== */
     function excelDateToISO(v) {
-      if (v === null || v === undefined) return '';
-      if (typeof v === 'string') return v.trim();
+      if (v == null) return '';
+      if (typeof v === 'string') {
+        // yyyy-mm-dd, yyyy/mm/dd, yyyy.m.d 등 대부분 케이스 수용
+        const s = v.trim().replace(/[./]/g,'-');
+        const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (m) {
+          const y=+m[1], mo=String(+m[2]).padStart(2,'0'), d=String(+m[3]).padStart(2,'0');
+          return `${y}-${mo}-${d}`;
+        }
+        return s;
+      }
       if (typeof v === 'number') {
         const utc_days = Math.floor(v - 25569);
         const utc_value = utc_days * 86400;
@@ -144,7 +138,7 @@
         const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,'0'), d=String(v.getDate()).padStart(2,'0');
         return `${y}-${m}-${d}`;
       }
-      return String(v || '');
+      return String(v);
     }
 
     function calculateAge(rrn) {
@@ -165,17 +159,17 @@
       return age;
     }
 
-    function parseAge(val) {
+    function parseAgeLoose(val) {
+      // 생년(YYYY)만 있는 경우도 처리
       if (!val) return null;
       const s = String(val).replace(/\D/g, '');
-      if (s.length < 4) return null;
-      const year = s.length === 8 ? parseInt(s.slice(0, 4),10)
-                 : s.length === 6 ? parseInt(s.slice(0, 2),10) + 1900
-                 : null;
-      if (!year) return null;
-      const birth = new Date(year, 0, 1);
-      const today = new Date();
-      return today.getFullYear() - birth.getFullYear();
+      if (s.length >= 4) {
+        const year = s.length >= 4 ? parseInt(s.slice(0,4),10) : null;
+        if (!year || year < 1900 || year > 2100) return null;
+        const today = new Date();
+        return today.getFullYear() - year;
+      }
+      return null;
     }
 
     function getAgeBand(age) {
@@ -189,23 +183,10 @@
       return '70대 이상';
     }
 
-    function buildCountMap(data, keyIndex, dateIndex, startRow=2) {
-      const seen = new Set(); const countMap = {};
-      if (!data) return countMap;
-      const rows = data.slice(startRow);
-      rows.forEach(r=>{
-        if (!Array.isArray(r)) return;
-        const key = r[keyIndex]?.toString().trim();
-        const date = excelDateToISO(r[dateIndex]);
-        const u = key+'_'+date;
-        if (key && date && !seen.has(u)) { seen.add(u); countMap[key]=(countMap[key]||0)+1; }
-      });
-      return countMap;
-    }
-
     const toPercent = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
     const average = (arr) => arr.length ? arr.reduce((x,y)=>x+y,0)/arr.length : 0;
 
+    // 0, 0%, NaN → '-'
     function fmt(v){
       if (v===null || v===undefined) return '-';
       const s=String(v).trim();
@@ -215,28 +196,95 @@
       return s;
     }
 
+    /* ===== 헤더 자동 탐지 ===== */
+    // 주어진 2차원 배열에서 '헤더행 인덱스'와 특정 열 후보를 찾아줌
+    function findHeaderAndCols(rows, wantedMap){
+      // wantedMap: { key: ['차트번호','환자번호',...], date: ['진료일자','처방일자',...], rrn: [...] }
+      const lower = (x)=>String(x||'').trim().toLowerCase();
+      const isHeaderRow = (r) => {
+        const cells = r.map(lower);
+        // 헤더로 보이게 하는 간단 기준: 한글/영문 라벨이 섞여 있고 숫자 비중이 낮음
+        const textCnt = cells.filter(c=>/[a-z가-힣]/.test(c)).length;
+        return textCnt >= Math.max(2, Math.floor(cells.length/3));
+      };
+
+      // 1) 헤더 후보 행 찾기
+      let headerIdx = rows.findIndex(r => isHeaderRow(r));
+      if (headerIdx < 0) headerIdx = 0;
+
+      // 2) 각 필드의 열 찾기
+      const header = (rows[headerIdx] || []).map(lower);
+      const idxOf = (targets) => {
+        let best = -1;
+        (targets||[]).forEach(t=>{
+          const i = header.findIndex(h => h.includes(t.toLowerCase()));
+          if (i>=0 && best===-1) best = i;
+        });
+        return best;
+      };
+
+      const keyIdx  = idxOf(wantedMap.key);
+      const dateIdx = idxOf(wantedMap.date);
+      const rrnIdx  = idxOf(wantedMap.rrn);
+
+      return { headerIdx, keyIdx, dateIdx, rrnIdx, headerRaw: rows[headerIdx]||[] };
+    }
+
+    /* ===== 카운트맵 빌드 ===== */
+    function buildVisitOrInjCount(data, wantedMap){
+      if (!data || !data.length) return {countMap:{}, meta:null};
+
+      const { headerIdx, keyIdx, dateIdx, headerRaw } =
+        findHeaderAndCols(data, wantedMap);
+
+      const start = Math.min(data.length, headerIdx+1);
+      const rows = data.slice(start);
+      const seen = new Set();
+      const countMap = {};
+
+      rows.forEach(r=>{
+        const key = r[keyIdx]?.toString().trim();
+        const date = excelDateToISO(r[dateIdx]);
+        if (!key || !date) return;
+        const u = key + '_' + date;
+        if (seen.has(u)) return;
+        seen.add(u);
+        countMap[key] = (countMap[key]||0) + 1;
+      });
+
+      return {
+        countMap,
+        meta: { headerIdx, keyIdx, dateIdx, headerRaw }
+      };
+    }
+
     /* ===== 계산 ===== */
     function computeStats(merged){
       const byRoom = { '전체':[...merged] };
       merged.forEach(r=>{ (byRoom[r.room]??=([])).push(r); });
+
       const result=[];
       for(const [label, total] of Object.entries(byRoom)){
         const inj = total.filter(r=>r.inj>0);
         const adult = total.filter(r=>(r.age??0)>=18);
         const adultInj = adult.filter(r=>r.inj>0);
+
         const avgInj = average(inj.map(r=>r.inj));
         const avgVisitAmongInj = average(inj.map(r=>r.visit));
-        const visitAvgAll = average(total.map(r=>r.visit));
-        const cnt1 = total.filter(r=>r.visit===1).length;
-        const cnt2 = total.filter(r=>r.visit===2).length;
-        const cnt3 = total.filter(r=>r.visit===3).length;
-        const cnt4 = total.filter(r=>r.visit===4).length;
-        const cnt5 = total.filter(r=>r.visit===5).length;
-        const cnt6 = total.filter(r=>r.visit===6).length;
-        const cnt7 = total.filter(r=>r.visit===7).length;
-        const cnt8p= total.filter(r=>r.visit>=8).length;
-        const revisit2pAll = total.filter(r=>r.visit>=2).length;
-        const revisit2pInj = inj.filter(r=>r.visit>=2).length;
+        const visitAvgAll = average(total.map(r=>Math.max(1, r.visit||0))); // 최소 1회 방문 가정
+
+        const cnt1 = total.filter(r=>Math.max(1, r.visit||0)===1).length;
+        const cnt2 = total.filter(r=>(r.visit||0)===2).length;
+        const cnt3 = total.filter(r=>(r.visit||0)===3).length;
+        const cnt4 = total.filter(r=>(r.visit||0)===4).length;
+        const cnt5 = total.filter(r=>(r.visit||0)===5).length;
+        const cnt6 = total.filter(r=>(r.visit||0)===6).length;
+        const cnt7 = total.filter(r=>(r.visit||0)===7).length;
+        const cnt8p= total.filter(r=>(r.visit||0)>=8).length;
+
+        const revisit2pAll = total.filter(r=>(r.visit||0)>=2).length;
+        const revisit2pInj = inj.filter(r=>(r.visit||0)>=2).length;
+
         result.push({
           '구분':label,
           '초진환자수':total.length,
@@ -267,37 +315,39 @@
 
     function computeAgeBandStats(merged){
       const byRoomBand={};
-      merged.forEach(r=>{ const band=getAgeBand(r.age); (byRoomBand[r.room]??=( {} ))[band]??=[]; byRoomBand[r.room][band].push(r); });
+      merged.forEach(r=>{
+        const band=getAgeBand(r.age);
+        (byRoomBand[r.room]??=( {} ))[band]??=[];
+        byRoomBand[r.room][band].push(r);
+      });
+
       const orderRooms=['1진료실','2진료실','3진료실','4진료실','5진료실'];
       const orderBands=['전체','0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상'];
       const rows=[];
-      const roomKeys=Object.keys(byRoomBand).sort((a,b)=>{const ai=orderRooms.indexOf(a),bi=orderRooms.indexOf(b);if(ai===-1&&bi===-1)return a.localeCompare(b);if(ai===-1)return 1;if(bi===-1)return -1;return ai-bi});
+      const roomKeys=Object.keys(byRoomBand).sort((a,b)=>{
+        const ai=orderRooms.indexOf(a),bi=orderRooms.indexOf(b);
+        if(ai===-1&&bi===-1)return a.localeCompare(b);
+        if(ai===-1)return 1; if(bi===-1)return -1; return ai-bi
+      });
+
       for(const room of roomKeys){
         const allArr = Object.values(byRoomBand[room]).flat();
         if (allArr.length){
           const injAll = allArr.filter(x=>x.inj>0); const injAllN = injAll.length;
           const avgInjAll = injAllN ? average(injAll.map(x=>x.inj)) : 0;
-          const avgVisitAll = average(allArr.map(x=>x.visit));
-          const revisit2pAll = allArr.filter(x=>x.visit>=2).length;
+          const avgVisitAll = average(allArr.map(x=>Math.max(1, x.visit||0)));
+          const revisit2pAll = allArr.filter(x=>(x.visit||0)>=2).length;
           const cntA=(n)=>injAll.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
           const rateA=(n)=>toPercent(cntA(n),injAllN);
           rows.push({
-            '진료실':room,
-            '연령대':'전체',
-            '초진환자수':allArr.length,
-            '초진주사환자수':injAllN,
+            '진료실':room,'연령대':'전체',
+            '초진환자수':allArr.length,'초진주사환자수':injAllN,
             '초진 주사처방률':toPercent(injAllN,allArr.length),
             '초진 평균 내원횟수':avgVisitAll.toFixed(1),
             '초진 재내원율(2회 이상)':toPercent(revisit2pAll,allArr.length),
             '초진 주사환자 평균 주사횟수':avgInjAll.toFixed(1),
-            '주사 1회(%)':rateA(1),
-            '2회(%)':rateA(2),
-            '3회(%)':rateA(3),
-            '4회(%)':rateA(4),
-            '5회(%)':rateA(5),
-            '6회(%)':rateA(6),
-            '7회(%)':rateA(7),
-            '8회 이상(%)':rateA(8)
+            '주사 1회(%)':rateA(1),'2회(%)':rateA(2),'3회(%)':rateA(3),'4회(%)':rateA(4),
+            '5회(%)':rateA(5),'6회(%)':rateA(6),'7회(%)':rateA(7),'8회 이상(%)':rateA(8)
           });
         }
         const bands=byRoomBand[room];
@@ -306,27 +356,19 @@
           const arr=bands[band]||[]; if(!arr.length) continue;
           const inj=arr.filter(x=>x.inj>0); const injN=inj.length;
           const avgInj = injN? average(inj.map(x=>x.inj)) : 0;
-          const avgVisit = average(arr.map(x=>x.visit));
-          const revisit2p = arr.filter(x=>x.visit>=2).length;
+          const avgVisit = average(arr.map(x=>Math.max(1, x.visit||0)));
+          const revisit2p = arr.filter(x=>(x.visit||0)>=2).length;
           const cnt=(n)=>inj.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
           const rate=(n)=>toPercent(cnt(n),injN);
           rows.push({
-            '진료실':room,
-            '연령대':band,
-            '초진환자수':arr.length,
-            '초진주사환자수':injN,
+            '진료실':room,'연령대':band,
+            '초진환자수':arr.length,'초진주사환자수':injN,
             '초진 주사처방률':toPercent(injN,arr.length),
             '초진 평균 내원횟수':avgVisit.toFixed(1),
             '초진 재내원율(2회 이상)':toPercent(revisit2p,arr.length),
             '초진 주사환자 평균 주사횟수':avgInj.toFixed(1),
-            '주사 1회(%)':rate(1),
-            '2회(%)':rate(2),
-            '3회(%)':rate(3),
-            '4회(%)':rate(4),
-            '5회(%)':rate(5),
-            '6회(%)':rate(6),
-            '7회(%)':rate(7),
-            '8회 이상(%)':rate(8)
+            '주사 1회(%)':rate(1),'2회(%)':rate(2),'3회(%)':rate(3),'4회(%)':rate(4),
+            '5회(%)':rate(5),'6회(%)':rate(6),'7회(%)':rate(7),'8회 이상(%)':rate(8)
           });
         }
       }
@@ -383,26 +425,12 @@
       return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
     }
 
-    /* ===== 파일 처리 & 실행 ===== */
+    /* ===== 파일 읽기 & 실행 ===== */
     async function readXlsx(file){
       const ab = await file.arrayBuffer();
       const wb = XLSX.read(ab, { type:'array' });
-
-      // 모든 시트를 돌며 '차트 번호' 헤더가 있는 시트를 우선 선택
-      let table = null;
-      for (const name of wb.SheetNames) {
-        const s = wb.Sheets[name];
-        const arr = XLSX.utils.sheet_to_json(s, { header:1, raw:true });
-        const hasChartHeader = arr.some(
-          r => Array.isArray(r) && r.some(c => /차트\s*번호/i.test(String(c || '')))
-        );
-        if (hasChartHeader) { table = arr; break; }
-      }
-      if (!table) {
-        const first = wb.Sheets[wb.SheetNames[0]];
-        table = XLSX.utils.sheet_to_json(first, { header:1, raw:true });
-      }
-      return table;
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      return XLSX.utils.sheet_to_json(sheet, { header:1, raw:true });
     }
 
     function normalizeRoomName(filename){
@@ -420,30 +448,23 @@
       XLSX.writeFile(wb, filename);
     }
 
-    // b/v 테이블의 key/date 열 자동 탐지
-    function findKeyDateIndexes(table){
-      const hi = table.findIndex(r => Array.isArray(r) && r.some(c => /(차트\s*번호|차트번호|환자|등록)/i.test(String(c || ''))));
-      const header = hi >= 0 ? table[hi] : (table[1] || table[0] || []);
-      const keyIdx  = header.findIndex(c => /(차트\s*번호|차트번호|환자코드|환자번호|등록번호)/i.test(String(c || '')));
-      const dateIdx = header.findIndex(c => /(진료일자|진료일|처방일자|처방일|일자|날짜)/i.test(String(c || '')));
-      const start   = hi >= 0 ? hi + 1 : 2;
-      return { keyIdx: keyIdx >= 0 ? keyIdx : 0, dateIdx: dateIdx >= 0 ? dateIdx : 3, start };
-    }
-    function buildCountMapFlexible(table){
-      if (!table) return {};
-      const { keyIdx, dateIdx, start } = findKeyDateIndexes(table);
-      return buildCountMap(table, keyIdx, dateIdx, start);
+    function showDetected(metaList){
+      const wrap = $('#detected');
+      const pills = metaList.filter(Boolean).map(m=>{
+        if (!m) return '';
+        const hdr = (m.headerRaw||[]).map(x=>String(x??'')).filter(Boolean).slice(0,8).join(' | ');
+        return `<span class="pill">${m.label}</span>키:${m.keyIdx+1}열 / 일자:${m.dateIdx+1}열  <span class="hint">헤더:${hdr}</span>`;
+      }).join('<br>');
+      wrap.innerHTML = pills;
     }
 
     async function processFiles(){
       const clinicFiles=$('#clinicFiles').files; const bFile=$('#bFile').files[0]; const vFile=$('#vFile').files[0];
-      if(!clinicFiles.length){alert('진료실 파일은 반드시 업로드해야 합니다');return;}
+      if(!clinicFiles.length){alert('진료실(초진) 파일은 반드시 업로드해야 합니다');return;}
       $('#runBtn').disabled=true; $('#runBtn').textContent='계산 중…';
       try{
-        const clinic=[];
-        for(const f of clinicFiles){ clinic.push({name:normalizeRoomName(f.name), data:await readXlsx(f)}); }
-        const b = bFile? await readXlsx(bFile):null;
-        const v = vFile? await readXlsx(vFile):null;
+        const clinic=[]; for(const f of clinicFiles){ clinic.push({name:normalizeRoomName(f.name), data:await readXlsx(f)}); }
+        const b = bFile? await readXlsx(bFile):null; const v = vFile? await readXlsx(vFile):null;
         runAnalysis({clinic,b,v});
       }catch(e){ console.error(e); alert('파일 처리 중 오류가 발생했습니다.'); }
       finally{ $('#runBtn').disabled=false; $('#runBtn').textContent='통계 계산'; }
@@ -451,26 +472,30 @@
 
     function runAnalysis(fileMap){
       const seen=new Set(); const clinicRows=[];
+      const clinicMetas = [];
+
+      // ----- 초진 파일 파싱 (차트번호 + 주민/생년) -----
       fileMap.clinic.forEach(room=>{
-        // 헤더 행/열 자동 탐지
-        const headerIndex = room.data.findIndex(r =>
-          Array.isArray(r) && r.some(c => /차트\s*번호/i.test(String(c || '')))
-        );
-        const headerRow = headerIndex >= 0 ? room.data[headerIndex] : (room.data[3] || []);
-        const idIdx  = headerRow.findIndex(c => /차트\s*번호/i.test(String(c || '')));
-        const rrnIdx = headerRow.findIndex(c => /(주민|생년월일)/i.test(String(c || '')));
-        const startRow = headerIndex >= 0 ? headerIndex + 1 : 4;
-        const rows = room.data.slice(startRow).filter(Array.isArray);
+        const rowsAll = room.data;
+        const wantedClinic = {
+          key:  ['차트번호','환자번호','고객번호','chart','환자코드'],
+          rrn:  ['주민등록','주민번호','생년월일','생년','생년월','생년일','출생','birth','주민'],
+          date: ['초진일','내원일','진료일','처방일','일자','접수일'] // 사용은 안하지만 탐지에 도움이 됨
+        };
+        const meta = findHeaderAndCols(rowsAll, wantedClinic);
+        clinicMetas.push({ ...meta, label: room.name });
+
+        const startRow = Math.min(rowsAll.length, meta.headerIdx+1);
+        const rows = rowsAll.slice(startRow).filter(r => Array.isArray(r) && r.length >= 2);
 
         rows.forEach(r=>{
-          const id  = (idIdx  >= 0 ? r[idIdx]  : r[0])?.toString().trim();
-          const rrn = (rrnIdx >= 0 ? r[rrnIdx] : r[2])?.toString().trim?.() || '';
+          const id  = r[meta.keyIdx]?.toString().trim();
+          const rrn = r[meta.rrnIdx]?.toString().trim?.() || '';
           if (!id) return;
 
           const age =
-            rrn && rrn.includes('-') ? calculateAge(rrn) :
-            (rrn ? (parseAge(rrn) ?? null) : null);
-
+            (rrn && rrn.includes('-')) ? calculateAge(rrn) :
+            (rrn ? (parseAgeLoose(rrn) ?? null) : null);
           if (age === null || isNaN(age) || age < 0 || age > 120) return;
 
           const key = id + '_' + room.name;
@@ -481,9 +506,32 @@
         });
       });
 
-      const bMap = fileMap.b ? buildCountMapFlexible(fileMap.b) : {};
-      const vMap = fileMap.v ? buildCountMapFlexible(fileMap.v) : {};
-      const merged = clinicRows.map(r=>({ id:r.id, age:r.age, room:r.room, inj:bMap[r.id]||0, visit:vMap[r.id]||0 }));
+      // ----- 주사/총환자 파일: 키/일자 자동 탐지하여 고유 방문일수 계산 -----
+      const injWanted = { // 주사 파일
+        key:['차트번호','환자번호','고객번호','chart','환자코드'],
+        date:['처방일자','조제일자','투여일자','진료일자','일자','작성일자','전송일자'],
+        rrn:[]
+      };
+      const visitWanted = { // 총 환자(초진+재진)
+        key:['차트번호','환자번호','고객번호','chart','환자코드'],
+        date:['진료일자','내원일자','접수일자','일자','방문일자','처방일자'],
+        rrn:[]
+      };
+
+      const inj = fileMap.b ? buildVisitOrInjCount(fileMap.b, injWanted) : {countMap:{},meta:null};
+      const vis = fileMap.v ? buildVisitOrInjCount(fileMap.v, visitWanted) : {countMap:{},meta:null};
+
+      showDetected([
+        inj.meta && { ...inj.meta, label:'주사 파일' },
+        vis.meta && { ...vis.meta, label:'총 환자 파일' },
+        ...clinicMetas
+      ]);
+
+      const merged = clinicRows.map(r=>({
+        id:r.id, age:r.age, room:r.room,
+        inj: inj.countMap[r.id] || 0,
+        visit: vis.countMap[r.id] || 1  // 총환자 파일이 없거나 키 미매칭이면 최소 1회
+      }));
 
       const stats = computeStats(merged);
       const byAge = computeAgeBandStats(merged);
@@ -515,6 +563,7 @@
       $('#clinicFiles').value=''; $('#bFile').value=''; $('#vFile').value='';
       $('#output').innerHTML=''; $('#byAgeOutput').innerHTML='';
       $('#summary').style.display='none'; $('#downloadBtn').disabled=true;
+      $('#detected').textContent='';
     });
     $('#toggleCompactBtn').addEventListener('click', ()=>{
       const card = $('#ageCard');
