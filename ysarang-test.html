@@ -283,10 +283,10 @@
           '초진환자수':total.length,
           '초진주사환자수':inj.length,
           '초진 주사처방률':toPercent(inj.length,total.length),
-          '초진 주사환자 평균 주사횟수':inj.length?avgInj.toFixed(1):'-',
+          '초진 주사 평균 내원 횟수':inj.length?avgInj.toFixed(1):'-',
           '초진 주사환자 평균내원횟수':inj.length?avgVisitAmongInj.toFixed(1):'-',
-          '초진 주사환자 재진률(2회 이상)':inj.length?toPercent(revisit2pInj,inj.length):'-',
-          '(18세▲)초진환자수':adult.length,
+          '초진 주사 재진율':inj.length?toPercent(revisit2pInj,inj.length):'-',
+          '(18세▲)초진수':adult.length,
           '(18세▲)초진주사수':adultInj.length,
           '(18세▲)초진주사처방률':adult.length?toPercent(adultInj.length,adult.length):'-',
           '초진 평균 내원횟수':total.length?visitAvgAll.toFixed(1):'-',
@@ -325,20 +325,20 @@
           rows.push({
             '진료실':room,
             '연령대':'전체',
-            '초진환자수':allArr.length,
-            '초진주사환자수':injAllN,
-            '초진 주사처방률':toPercent(injAllN,allArr.length),
+            '초진':allArr.length,
+            '초진주사수':injAllN,
+            '초진 주사 처방률':toPercent(injAllN,allArr.length),
             '초진 평균 내원횟수':avgVisitAll.toFixed(1),
             '초진 재내원율(2회 이상)':toPercent(revisit2pAll,allArr.length),
-            '초진 주사환자 평균 주사횟수':injAllN?avgInjAll.toFixed(1):'-',
-            '1회 주사':rateA(1),
-            '2회 주사':rateA(2),
-            '3회 주사':rateA(3),
-            '4회 주사':rateA(4),
-            '5회 주사':rateA(5),
-            '6회 주사':rateA(6),
-            '7회 주사':rateA(7),
-            '8회 이상':rateA(8)
+            '초진 주사 평균 내원 횟수':injAllN?avgInjAll.toFixed(1):'-',
+            '1회 내원율':rateA(1),
+            '2회 내원율':rateA(2),
+            '3회 내원율':rateA(3),
+            '4회 내원율':rateA(4),
+            '5회 내원율':rateA(5),
+            '6회 내원율':rateA(6),
+            '7회 내원율':rateA(7),
+            '8회 내원율':rateA(8)
           });
         }
         const bands=byRoomBand[room];
@@ -354,12 +354,12 @@
           rows.push({
             '진료실':room,
             '연령대':band,
-            '초진환자수':arr.length,
-            '초진주사환자수':injN,
-            '초진 주사처방률':toPercent(injN,arr.length),
+            '초진':arr.length,
+            '초진주사수':injN,
+            '초진 주사 처방률':toPercent(injN,arr.length),
             '초진 평균 내원횟수':avgVisit.toFixed(1),
             '초진 재내원율(2회 이상)':toPercent(revisit2p,arr.length),
-            '초진 주사환자 평균 주사횟수':injN?avgInj.toFixed(1):'-',
+            '초진 주사 평균 내원 횟수':injN?avgInj.toFixed(1):'-',
             '주사 1회 주사':rate(1),
             '2회 주사':rate(2),
             '3회 주사':rate(3),
@@ -367,7 +367,7 @@
             '5회 주사':rate(5),
             '6회 주사':rate(6),
             '7회 주사':rate(7),
-            '8회 이상':rate(8)
+            '8회 이상 주사':rate(8)
           });
         }
       }
