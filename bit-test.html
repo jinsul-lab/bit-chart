@@ -204,7 +204,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
       const rows = allRows.filter(r => r["연령대"] === "전체");
       if (!rows.length) { document.getElementById('summaryOutput').innerHTML = ""; return; }
 
-      const orderRooms = ["전체","1진료실","2진료실","3진료실","4진료실","5진료실","6진료실","7진료실","8진료실","9진료실","10진료실"];
+      const orderRooms = ["1진료실","2진료실","3진료실","4진료실","5진료실","6진료실","7진료실","8진료실","9진료실","10진료실","전체"];
       rows.sort((a,b)=>{
         const ai = orderRooms.indexOf(a["구분"]); const bi = orderRooms.indexOf(b["구분"]);
         return (ai===-1)-(bi===-1) || ai-bi || a["구분"].localeCompare(b["구분"]);
