@@ -56,10 +56,25 @@
     .compact table tbody .dist-merged{display:table-cell}
     .dist-merged{display:none}
 
-    @media (max-width: 899px){
+    @media (max-width:899px){
       .grid{grid-template-columns:1fr}
-      .summary{grid-template-columns:1fr 1fr}
       th,td{font-size:11px}
+    }
+
+    /* ✅ 인쇄용 (1️⃣) */
+    @media print {
+      body {
+        display: block !important;
+      }
+      .table-card {
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+      }
+      .table-card:nth-of-type(1) {
+        order: -1;
+      }
+    }
+
     }
   </style>
 </head>
@@ -92,6 +107,8 @@
         </div>
         <div class="right">
           <button id="runBtn">통계 계산</button>
+          <button onclick="reorderForPrint()">인쇄</button>
+
         </div>
       </div>
       <div class="right" style="margin-top:8px">
@@ -576,5 +593,22 @@
       // 표는 다음 계산 시 컴팩트/상세가 반영됩니다.
     });
   </script>
+
+
+    <!-- ✅ 인쇄용 함수 (3️⃣) -->
+  <script>
+  function reorderForPrint() {
+    const wrap = document.querySelector('.wrap');
+    const summaryCard = document.querySelector('#summaryOutput')?.closest('.card');
+    const ageCard = document.querySelector('#output')?.closest('.card');
+    if (wrap && summaryCard && ageCard) {
+      wrap.insertBefore(summaryCard, ageCard);
+    }
+    window.print();
+  }
+  </script>
+
+
+  
 </body>
 </html>
