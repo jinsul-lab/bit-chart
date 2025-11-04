@@ -441,10 +441,11 @@
 const rrn = r[2]?.toString().trim?.() || '';
 if (!id) return;
 
-// 주민번호/생년월일이 없어도 포함 (나이는 null로 처리)
+// 주민번호/생년월일이 없으면 제외
 const age =
-  rrn.includes('-') ? calculateAge(rrn) :
-  (parseAge(rrn) ?? null);
+  rrn && rrn.includes('-') ? calculateAge(rrn) :
+  (rrn ? (parseAge(rrn) ?? null) : null);
+if (age === null) return; // 👈 나이 판별 안 되면 제외
 
 // 중복키는 'id+진료실'로 단순화 (주민번호 형식 차이로 빠지는 것 방지)
 const key = id + '_' + room.name;
