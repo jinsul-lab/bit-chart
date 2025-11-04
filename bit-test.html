@@ -57,6 +57,24 @@
       .grid{grid-template-columns:1fr}
       th,td{font-size:11px}
     }
+
+
+        /* ✅ 인쇄용 (1️⃣) */
+    @media print {
+      body {
+        display: block !important;
+      }
+      .table-card {
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+      }
+      .table-card:nth-of-type(1) {
+        order: -1;
+      }
+    }
+
+
+    
   </style>
 </head>
 <body>
@@ -79,6 +97,7 @@
           <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
         </div>
         <div style="display:flex;align-items:end;justify-content:flex-end;">
+          <button onclick="reorderForPrint()">인쇄</button>
           <button id="runBtn" onclick="document.getElementById('fileInput').click()">파일 선택</button>
         </div>
       </div>
@@ -520,5 +539,23 @@ const 진료과들 = [...new Set(
       renderAgeTable(result);
     }
   </script>
+
+
+    <!-- ✅ 인쇄용 함수 (3️⃣) -->
+  <script>
+  function reorderForPrint() {
+    const wrap = document.querySelector('.wrap');
+    const summaryCard = document.querySelector('#summaryOutput')?.closest('.card');
+    const ageCard = document.querySelector('#output')?.closest('.card');
+    if (wrap && summaryCard && ageCard) {
+      wrap.insertBefore(summaryCard, ageCard);<button onclick="reorderForPrint()">인쇄</button>
+
+    }
+    window.print();
+  }
+  </script>
+
+
+  
 </body>
 </html>
