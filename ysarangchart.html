@@ -78,7 +78,7 @@
 <body>
   <header>
     <h1>의사랑 연령별 통계</h1>
-    <p class="sub">진료실(1~5진) + 주사(b) + 내원(v) 통합. 개인정보는 마스킹/집계만 사용.</p>
+    <p class="sub">의사랑 사용자 통계에서 초진 파일, 주사 파일, 총 환자 파일을 받아주세.</p>
   </header>
 
   <div class="wrap">
@@ -86,18 +86,18 @@
     <div class="card">
       <div class="grid">
         <div>
-          <label>진료실별 초진 환자</label>
-          <label>담당의 또는 진료실별로 초진 환자 받아주세요</label>
+          <label>초진 파일</label>
+          <label>⚠️진료실이 여러개면 꼭 담당의나 진료실별로 초진 파일 받아주세요⚠️</label>
           <input type="file" id="clinicFiles" multiple accept=".xlsx" />
         </div>
         <div>
-          <label>주사</label>
-          <label>리도카인, 엠카인 등 마취제 ⚠️진료실별로 받지 않아도 됩니다⚠️</label>
+          <label>주사 파일(리도카인, 엠카인 등 마취제)</label>
+          <label>⚠️진료실별로 받지 않아도 됩니다⚠️</label>
           <input type="file" id="bFile" accept=".xlsx" />
         </div>
         <div>
           <label>총 환자</label>
-          <label>초진, 재진진찰료 ⚠️진료실별로 받지 않아도 됩니다⚠️</label>
+          <label>초진&재진 진찰료 ⚠️진료실별로 받지 않아도 됩니다⚠️</label>
           <input type="file" id="vFile" accept=".xlsx" />
         </div>
         <div class="right">
