@@ -445,7 +445,9 @@ if (!id) return;
 const age =
   rrn && rrn.includes('-') ? calculateAge(rrn) :
   (rrn ? (parseAge(rrn) ?? null) : null);
-if (age === null) return; // 👈 나이 판별 안 되면 제외
+
+// 나이 판별 안 되면 그 사람만 제외
+if (age === null || isNaN(age) || age < 0 || age > 120) return;
 
 // 중복키는 'id+진료실'로 단순화 (주민번호 형식 차이로 빠지는 것 방지)
 const key = id + '_' + room.name;
