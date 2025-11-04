@@ -463,11 +463,8 @@ const 진료과들 = [...new Set(
   df.map(r => (r[col['과']] ?? '').toString().trim()).filter(Boolean) // 공란 제거
 )];
 
-진료과들.forEach(과 => {
-  const rows = df.filter(r => (r[col['과']] ?? '').toString().trim() === 과);
-  // ... makeStat ...
-});
-
+      진료과들.forEach(과 => {
+        const rows = df.filter(r => (r[col['과']] || "기타") === 과);
         if (연령열존재) {
           AGE_ORDER.slice(0, -1).forEach(a => makeStat(rows.filter(r => getAgeGroup(r[col['연령']]) === a), 과, a));
         }
