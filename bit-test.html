@@ -80,7 +80,7 @@
         <div>
           <label>외래진료실➡️외래환자➡️기간설정➡️검색➡️Excel내려받기➡️</label>
           <label>파일실행➡️다른이름저장➡️Excel통합문서(*.xlsx)➡️저장➡️업로드</label>
-          <input type="file" id="fileInput" accept=".xlsx,.csv" />
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
         </div>
         <div style="display:flex;align-items:end;justify-content:flex-end;">
           <button id="runBtn" onclick="document.getElementById('fileInput').click()">파일 선택</button>
@@ -253,7 +253,7 @@
           parseData(rawData, keyword);
         }
       };
-      if (isCSV) reader.readAsText(file);
+      if (isCSV) reader.readAsText(file 'EUC-KR');
       else reader.readAsArrayBuffer(file);
     });
 
