@@ -26,7 +26,7 @@
     .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr auto}
     label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
     input[type=file], input[type=text]{
-      width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:#fff; color:#111827;
+      width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:#fff; color:var(--text);
     }
     button{
       height:38px; border-radius:10px; border:1px solid var(--border);
@@ -101,95 +101,76 @@
     /* ================= 공통 유틸 ================= */
     const AGE_ORDER = ["0~10대", "20대", "30대", "40대", "50대", "60대", "70대이상", "전체"];
 
-    /* ==== CSV 헬퍼 (디자인/로직 변경 없음) ==== */
-    function stripBOM(s){ return s && s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s; }
-    function detectDelimiter(sampleText){
-      const line = (sampleText.split(/\r?\n/).find(l => l.trim().length) || '');
-      const cands = [',',';','\t','|']; let best=',', max=-1;
-      for (const c of cands){ const n = (line.match(new RegExp('\\'+c,'g'))||[]).length; if(n>max){max=n;best=c;} }
-      return best;
-    }
-    function smartCSVtoRows(csvText){
-      const txt = stripBOM(csvText);
-      const FS = detectDelimiter(txt);
-      const wb = XLSX.read(txt, { type:'string', FS });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      return XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
-    }
-    function findHeaderIndex(rows){
-      return rows.findIndex(row=>{
-        const cells = row.map(c=>String(c||'').toLowerCase());
-        const hasFirstRevisit = cells.some(c=>/초\s*\/?\s*재|신환|재진|90일초진/.test(c));
-        const hasChart = cells.some(c=>/차트|챠트|차트.?번호|환자.?번호|등록번호|id/.test(c));
-        const hasDept = cells.some(c=>/진료.?과|과목|외래.?진료.?실/.test(c));
-        return hasFirstRevisit && (hasChart || hasDept);
+    /* ✅ CSV 호환용 헬퍼 함수들 (추가) */
+function stripBOM(s) {
+  return s && s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+}
+
+function detectDelimiter(sampleText) {
+  const line = (sampleText.split(/\r?\n/).find(l => l.trim().length) || '');
+  const cands = [',', ';', '\t', '|'];
+  let best = ',', max = -1;
+  for (const c of cands) {
+    const n = (line.match(new RegExp('\\' + c, 'g')) || []).length;
+    if (n > max) { max = n; best = c; }
+  }
+  return best;
+}
+
+function smartCSVtoRows(csvText) {
+  const txt = stripBOM(csvText);
+  const FS = detectDelimiter(txt);
+  const wb = XLSX.read(txt, { type: 'string', FS });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+}
+
+function findHeaderIndex(rows) {
+  return rows.findIndex(row => {
+    const cells = row.map(c => String(c || '').toLowerCase());
+    const hasFirstRevisit = cells.some(c => /초\s*\/?\s*재|신환|재진|90일초진/.test(c));
+    const hasChart = cells.some(c => /차트|챠트|차트.?번호|환자.?번호|등록번호|id/.test(c));
+    const hasDept = cells.some(c => /진료.?과|과목|외래.?진료.?실/.test(c));
+    // 최소 조건: 초/재 + (차트|번호)
+    return hasFirstRevisit && (hasChart || hasDept);
+  });
+}
+
+/* ✅ 파일 로드 부분 교체 (기존 이벤트 리스너 대체) */
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
+  if (!file) return;
+
+  const isCSV = /\.csv$/i.test(file.name);
+  const reader = new FileReader();
+
+  reader.onload = function(evt) {
+    let rawData = [];
+
+    if (isCSV) {
+      // ✅ CSV: 구분자 자동 감지 + 따옴표/BOM 안전 처리
+      const rows = smartCSVtoRows(evt.target.result);
+      rawData = rows;
+      parseData(rawData, keyword);
+    } else {
+      // ✅ XLS/XLSX: 기존 방식 그대로
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      workbook.SheetNames.forEach(sheet => {
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheet], { header: 1, defval: "" });
+        rawData = rawData.concat(rows);
       });
+      parseData(rawData, keyword);
     }
+  };
 
-    /* ================= 파일 로딩: 단일 리스너 ================= */
-    const fileInput = document.getElementById('fileInput');
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      const keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
-      if (!file) return;
+  if (isCSV) reader.readAsText(file); // 텍스트로 읽기 (UTF-8/EUC-KR 모두 대응)
+  else reader.readAsArrayBuffer(file);
+});
 
-      try {
-        const rows = await loadAsRows(file); // 2D 배열
-        parseData(rows, keyword);
-      } catch (err) {
-        console.error(err);
-        document.getElementById('warning').innerText = '❗ 파일을 읽는 중 문제가 발생했습니다. (형식/인코딩 확인)';
-      }
-    });
 
-    // 파일을 2D 배열(rows)로 통일 변환
-    async function loadAsRows(file){
-      const name = file.name.toLowerCase();
-      const isCSV = name.endsWith('.csv');
-
-      if (isCSV){
-        const buf = await file.arrayBuffer();
-        // UTF-8 시도 → 깨짐이면 EUC-KR 재시도
-        let text = decodeText(buf, 'utf-8');
-        if (looksLikeGarbled(text)){
-          try { text = decodeText(buf, 'euc-kr'); } catch {}
-        }
-        // SheetJS로 CSV 파싱
-        const wb = XLSX.read(text, { type:'string' });
-        const all = [];
-        wb.SheetNames.forEach(s=>{
-          const ws = wb.Sheets[s];
-          const arr = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
-          all.push(...arr);
-        });
-        return all;
-      } else {
-        // XLSX / XLS
-        const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type:'array' });
-        const all = [];
-        wb.SheetNames.forEach(s=>{
-          const ws = wb.Sheets[s];
-          const arr = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
-          all.push(...arr);
-        });
-        return all;
-      }
-    }
-
-    function decodeText(arrayBuffer, label){
-      const dec = new TextDecoder(label, { fatal:false });
-      return dec.decode(new Uint8Array(arrayBuffer));
-    }
-    function looksLikeGarbled(s){
-      if (!s) return false;
-      const total = s.length; if (total < 50) return false;
-      const bad = (s.match(/\uFFFD/g) || []).length; // �
-      return bad / total > 0.02;
-    }
-
-    /* ================= 본 계산 ================= */
-    function getAgeGroup(raw){
+    function getAgeGroup(raw) {
       if (!raw || typeof raw !== 'string') return "전체";
       const match = raw.match(/(\d{1,3})세/);
       const age = match ? parseInt(match[1]) : NaN;
@@ -202,13 +183,15 @@
       if (age <= 69) return "60대";
       return "70대이상";
     }
-    function parseAge(val){
+
+    function parseAge(val) {
       if (val === null || val === undefined) return null;
       const s = String(val).trim();
       const m = s.match(/(\d{1,3})/);
-      return m ? Math.min(150, parseInt(m[1],10)) : null;
+      return m ? Math.min(150, parseInt(m[1], 10)) : null;
     }
-    function formatCell(v){
+
+    function formatCell(v) {
       if (v === null || v === undefined) return "-";
       const s = String(v).trim();
       if (s === "" || s === "0" || s === "0.0" || s === "0%" || /^nan/i.test(s) || /^nan%$/i.test(s)) return "-";
@@ -216,9 +199,10 @@
       return s;
     }
 
-    function renderSummaryTable(allRows){
+    /* ================= 표 렌더: 요약 ================= */
+    function renderSummaryTable(allRows) {
       const rows = allRows.filter(r => r["연령대"] === "전체");
-      if (!rows.length){ document.getElementById('summaryOutput').innerHTML = ""; return; }
+      if (!rows.length) { document.getElementById('summaryOutput').innerHTML = ""; return; }
 
       const orderRooms = ["전체","1진료실","2진료실","3진료실","4진료실","5진료실","6진료실","7진료실","8진료실","9진료실","10진료실"];
       rows.sort((a,b)=>{
@@ -245,14 +229,15 @@
         `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
     }
 
-    function renderAgeTable(result){
-      result.sort((a,b)=>{
+    /* ================= 표 렌더: 연령대 ================= */
+    function renderAgeTable(result) {
+      result.sort((a, b) => {
         if (a["구분"] !== b["구분"]) return a["구분"].localeCompare(b["구분"]);
         const ORDER = ["0~10대","20대","30대","40대","50대","60대","70대이상","전체"];
         return ORDER.indexOf(a["연령대"]) - ORDER.indexOf(b["연령대"]);
       });
 
-      if (!result.length){ document.getElementById('output').innerHTML = ""; return; }
+      if (!result.length) { document.getElementById('output').innerHTML = ""; return; }
 
       const desired = [
         "초진","초진주사","초진 주사처방률",
@@ -264,23 +249,23 @@
         "5회 내원 비율","6회 내원 비율","7회 내원 비율","8회 이상 내원 비율"
       ];
       const cols = desired.filter(col => result.some(r => col in r));
-      if (!cols.length){ document.getElementById('output').innerHTML = ""; return; }
+      if (!cols.length) { document.getElementById('output').innerHTML = ""; return; }
 
       const groupRows = {};
       result.forEach(r => { groupRows[r["구분"]] = (groupRows[r["구분"]] || 0) + 1; });
 
       let html = '<table><thead><tr><th>진료실</th><th>연령대</th>';
-      html += cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      html += cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
 
       let prev = null;
-      result.forEach(row=>{
+      result.forEach(row => {
         html += '<tr>';
-        if (row["구분"] !== prev){
+        if (row["구분"] !== prev) {
           html += `<td rowspan="${groupRows[row["구분"]]}">${row["구분"]}</td>`;
           prev = row["구분"];
         }
         html += `<td>${row["연령대"]}</td>`;
-        html += cols.map(k=>`<td>${formatCell(row[k])}</td>`).join('');
+        html += cols.map(k => `<td>${formatCell(row[k])}</td>`).join('');
         html += '</tr>';
       });
 
@@ -288,23 +273,92 @@
       document.getElementById('output').innerHTML = html;
     }
 
-    function parseData(data, keyword){
+    /* ================= 파일 로딩 (CSV UTF-8/EUC-KR + XLSX + XLS) ================= */
+
+    const fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      const keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
+      if (!file) return;
+
+      try {
+        const rows = await loadAsRows(file); // 2D 배열
+        parseData(rows, keyword);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('warning').innerText = '❗ 파일을 읽는 중 문제가 발생했습니다. (형식/인코딩 확인)';
+      }
+    });
+
+    // 파일을 2D 배열(rows)로 통일 변환
+    async function loadAsRows(file) {
+      const name = file.name.toLowerCase();
+      const isCSV = name.endsWith('.csv');
+
+      if (isCSV) {
+        // CSV는 ArrayBuffer로 읽어서 UTF-8 우선 → 필요 시 EUC-KR로 재해석
+        const buf = await file.arrayBuffer();
+        let text = decodeText(buf, 'utf-8');
+        if (looksLikeGarbled(text)) {
+          try { text = decodeText(buf, 'euc-kr'); } catch {}
+        }
+        // SheetJS로 CSV 문자열 파싱(복잡한 따옴표/콤마 처리 안정적)
+        const wb = XLSX.read(text, { type: 'string' });
+        const all = [];
+        wb.SheetNames.forEach(s=>{
+          const ws = wb.Sheets[s];
+          const arr = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
+          all.push(...arr);
+        });
+        return all;
+      } else {
+        // XLSX / XLS → ArrayBuffer 그대로 SheetJS에 전달
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const all = [];
+        wb.SheetNames.forEach(s=>{
+          const ws = wb.Sheets[s];
+          const arr = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
+          all.push(...arr);
+        });
+        return all;
+      }
+    }
+
+    // TextDecoder로 문자열 디코딩 (브라우저가 euc-kr 지원)
+    function decodeText(arrayBuffer, label) {
+      const dec = new TextDecoder(label, { fatal: false });
+      return dec.decode(new Uint8Array(arrayBuffer));
+    }
+
+    // UTF-8로 해석했을 때 깨짐(�)이 많으면 EUC-KR 재시도
+    function looksLikeGarbled(s) {
+      if (!s) return false;
+      const total = s.length;
+      if (total < 50) return false;
+      const bad = (s.match(/\uFFFD/g) || []).length; // �
+      return bad / total > 0.02; // 2% 이상이면 깨진 것으로 판단
+    }
+
+    /* ================= 본 계산 ================= */
+    function parseData(data, keyword) {
       document.getElementById('warning').innerText = '';
       const headerIdx = findHeaderIndex(data);
-      if (headerIdx === -1){
+
+      if (headerIdx === -1) {
         document.getElementById('warning').innerText = '❗ 유효한 헤더를 찾을 수 없습니다.';
         return;
       }
 
-      const headers = data[headerIdx].map(h=>String(h).trim());
-      const body = data.slice(headerIdx + 1).filter(r=>r.length > 1);
-      const df = body.map(row => Object.fromEntries(headers.map((h,i)=>[h, row[i] ?? ""])));
+      const headers = data[headerIdx].map(h => String(h).trim());
+      const body = data.slice(headerIdx + 1).filter(r => r.length > 1);
+      const df = body.map(row => Object.fromEntries(headers.map((h, i) => [h, row[i] ?? ""])));
 
       const result = [];
-      const 재진조건 = ["재진","물리치료내원","진찰료 산정안함"];
+      const 재진조건 = ["재진", "물리치료내원", "진찰료 산정안함"];
 
       const col = {};
-      headers.forEach(h=>{
+      headers.forEach(h => {
         const l = h.toLowerCase();
         if (l.includes("초") && l.includes("재")) col['초재'] = h;
         else if (l.includes("차트") || l.includes("챠트") || l.includes("id")) col['차트'] = h;
@@ -314,8 +368,8 @@
         else if (l.includes("나이") || l.includes("연령") || l.includes("생년") || l.includes("s/a")) col['연령'] = h;
       });
 
-      function makeStat(rows, label, ageGroup="전체"){
-        const 초진 = rows.filter(r => ["신환","90일초진"].includes(r[col['초재']]));
+      function makeStat(rows, label, ageGroup = "전체") {
+        const 초진 = rows.filter(r => ["신환", "90일초진"].includes(r[col['초재']]));
         const 초진차트 = [...new Set(초진.map(r => r[col['차트']]))];
 
         const 주사 = 초진.filter(r => (r[col['마취']] || '').includes('●'));
@@ -323,7 +377,7 @@
         const 주사기록 = rows.filter(r => 주사차트.includes(r[col['차트']]));
 
         const 주사횟수 = {}, 내원횟수 = {};
-        주사기록.forEach(r=>{
+        주사기록.forEach(r => {
           const id = r[col['차트']];
           if ((r[col['마취']] || '').includes('●')) 주사횟수[id] = (주사횟수[id] || 0) + 1;
           내원횟수[id] = (내원횟수[id] || 0) + 1;
@@ -333,41 +387,39 @@
         const 평균내원 = Object.keys(내원횟수).length ? (Object.values(내원횟수).reduce((a,b)=>a+b,0)/Object.keys(내원횟수).length).toFixed(1) : 0;
 
         const injRevisitRate = Object.keys(내원횟수).length
-          ? Math.round((Object.values(내원횟수).filter(v=>v>=2).length / Object.keys(내원횟수).length) * 100) + '%'
+          ? Math.round((Object.values(내원횟수).filter(v => v >= 2).length / Object.keys(내원횟수).length) * 100) + '%'
           : '-';
 
         const 초진기록 = rows.filter(r => 초진차트.includes(r[col['차트']]));
         const 초진내원 = {};
-        초진기록.forEach(r=>{
+        초진기록.forEach(r => {
           const id = r[col['차트']];
           초진내원[id] = (초진내원[id] || 0) + 1;
         });
 
         const 평균초진내원 = Object.keys(초진내원).length ? (Object.values(초진내원).reduce((a,b)=>a+b,0)/Object.keys(초진내원).length).toFixed(1) : 0;
-        const 재내원수 = Object.values(초진내원).filter(v=>v>=2).length;
+        const 재내원수 = Object.values(초진내원).filter(v => v >= 2).length;
 
-        const 비율 = (n, op="eq")=>{
+        const 비율 = (n, op="eq") => {
           const denom = Object.keys(초진내원).length;
           if (!denom) return 0;
           const arr = Object.values(초진내원);
-          const num = op==="ge" ? arr.filter(v=>v>=n).length : arr.filter(v=>v===n).length;
-          return Math.round((num/denom)*100);
+          const num = op==="ge" ? arr.filter(v => v >= n).length : arr.filter(v => v === n).length;
+          return Math.round((num / denom) * 100);
         };
 
-        const 키워드수 = col['메모'] && keyword
-          ? rows.filter(r => (r[col['메모']]||'').toLowerCase().includes(keyword)).length
-          : "";
+        const 키워드수 = col['메모'] && keyword ? rows.filter(r => (r[col['메모']] || '').toLowerCase().includes(keyword)).length : "";
 
         let adultRows = [];
-        if (col['연령']){
-          adultRows = rows.filter(r=>{
+        if (col['연령']) {
+          adultRows = rows.filter(r => {
             const a = parseAge(r[col['연령']]);
             return a !== null && a >= 18;
           });
         }
-        const adultFirst = adultRows.filter(r => ["신환","90일초진"].includes(r[col['초재']]));
-        const adultFirstCharts = [...new Set(adultFirst.map(r=>r[col['차트']]))];
-        const adultInj = adultFirst.filter(r => (r[col['마취']]||'').includes('●'));
+        const adultFirst = adultRows.filter(r => ["신환", "90일초진"].includes(r[col['초재']]));
+        const adultFirstCharts = [...new Set(adultFirst.map(r => r[col['차트']]))];
+        const adultInj = adultFirst.filter(r => (r[col['마취']] || '').includes('●'));
         const adultRate = adultFirstCharts.length
           ? Math.round((adultInj.length / adultFirstCharts.length) * 100) + '%'
           : '-';
@@ -385,7 +437,7 @@
           "(18세▲)초진주사": adultInj.length,
           "(18세▲)초진주사처방률": adultRate,
           "초진 평균 내원횟수": 평균초진내원,
-          "초진 재내원율": `${초진차트.length ? Math.round((재내원수/초진차트.length)*100) : 0}%`,
+          "초진 재내원율": `${초진차트.length ? Math.round((재내원수/초진차트.length)*100):0}%`,
           "1회 내원 비율": `${비율(1)}%`,
           "2회 내원 비율": `${비율(2)}%`,
           "3회 내원 비율": `${비율(3)}%`,
@@ -401,20 +453,16 @@
       const 연령열존재 = col['연령'];
       const 전체 = df;
 
-      if (연령열존재){
-        AGE_ORDER.slice(0, -1).forEach(a =>
-          makeStat(전체.filter(r => getAgeGroup(r[col['연령']]) === a), "전체", a)
-        );
+      if (연령열존재) {
+        AGE_ORDER.slice(0, -1).forEach(a => makeStat(전체.filter(r => getAgeGroup(r[col['연령']]) === a), "전체", a));
       }
       makeStat(전체, "전체", "전체");
 
       const 진료과들 = [...new Set(df.map(r => r[col['과']] || "기타"))];
-      진료과들.forEach(과=>{
+      진료과들.forEach(과 => {
         const rows = df.filter(r => (r[col['과']] || "기타") === 과);
-        if (연령열존재){
-          AGE_ORDER.slice(0, -1).forEach(a =>
-            makeStat(rows.filter(r => getAgeGroup(r[col['연령']]) === a), 과, a)
-          );
+        if (연령열존재) {
+          AGE_ORDER.slice(0, -1).forEach(a => makeStat(rows.filter(r => getAgeGroup(r[col['연령']]) === a), 과, a));
         }
         makeStat(rows, 과, "전체");
       });
