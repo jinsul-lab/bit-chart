@@ -56,21 +56,57 @@
     .compact table tbody .dist-merged{display:table-cell}
     .dist-merged{display:none}
 
-    @media (max-width: 899px){
+    @media (max-width:899px){
       .grid{grid-template-columns:1fr}
-      .summary{grid-template-columns:1fr 1fr}
       th,td{font-size:11px}
+    }
+
+    /* ✅ 인쇄용 (1️⃣) */
+    @media print {
+      body {
+        display: block !important;
+      }
+      .table-card {
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+      }
+      .table-card:nth-of-type(1) {
+        order: -1;
+      }
+
+
+      @media print {
+  /* 업로드 카드/버튼 숨김 */
+  .no-print { display: none !important; }
+
+  /* 프린트 가독성 */
+  body { background: #fff; }
+  .card { box-shadow: none; border-color: #ddd; }
+  .table-card { break-inside: avoid; page-break-inside: avoid; }
+  table { page-break-inside: auto; }
+}
+
+    }
+
     }
   </style>
 </head>
 <body>
   <header>
     <h1>의사랑 연령별 통계</h1>
-    <p class="sub">⚡의사랑 사용자 통계에서 초진 파일(진료실별), 주사 파일, 총 환자 파일을 받아주세요.</p>
+    <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
   </header>
 
   <div class="wrap">
-    <div class="card">
+    <div class="card"> 
+
+
+<div class="card no-print">
+  <div class="grid">
+    <!-- 키워드 입력 / 파일 input / 파일 선택 버튼 -->
+  </div>
+
+      
       <div class="grid">
         <div>
           <label>초진 파일(진료실별 또는 담당의별)</label>
@@ -92,6 +128,7 @@
         </div>
         <div class="right">
           <button id="runBtn">통계 계산</button>
+
         </div>
       </div>
       <div class="right" style="margin-top:8px">
@@ -306,73 +343,116 @@
       return result;
     }
 
-    function computeAgeBandStats(merged){
-      const byRoomBand={};
-      merged.forEach(r=>{ const band=getAgeBand(r.age); (byRoomBand[r.room]??=( {} ))[band]??=[]; byRoomBand[r.room][band].push(r); });
-      const orderRooms=['1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실'];
-      const orderBands=['전체','0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상'];
-      const rows=[];
-      const roomKeys=Object.keys(byRoomBand).sort((a,b)=>{const ai=orderRooms.indexOf(a),bi=orderRooms.indexOf(b);if(ai===-1&&bi===-1)return a.localeCompare(b);if(ai===-1)return 1;if(bi===-1)return -1;return ai-bi});
-      for(const room of roomKeys){
-        const allArr = Object.values(byRoomBand[room]).flat();
-        if (allArr.length){
-          const injAll = allArr.filter(x=>x.inj>0); const injAllN = injAll.length;
-          const avgInjAll = injAllN ? average(injAll.map(x=>x.inj)) : 0;
-          const avgVisitAll = average(allArr.map(x=>x.visit));
-          const revisit2pAll = allArr.filter(x=>x.visit>=2).length;
-          const cntA=(n)=>injAll.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
-          const rateA=(n)=>toPercent(cntA(n),injAllN);
-          rows.push({
-            '진료실':room,
-            '연령대':'전체',
-            '초진환자수':allArr.length,
-            '초진주사환자수':injAllN,
-            '초진 주사처방률':toPercent(injAllN,allArr.length),
-            '초진 평균 내원횟수':avgVisitAll.toFixed(1),
-            '초진 재내원율(2회 이상)':toPercent(revisit2pAll,allArr.length),
-            '초진 주사환자 평균 주사횟수':injAllN?avgInjAll.toFixed(1):'-',
-            '주사 1회(%)':rateA(1),
-            '2회(%)':rateA(2),
-            '3회(%)':rateA(3),
-            '4회(%)':rateA(4),
-            '5회(%)':rateA(5),
-            '6회(%)':rateA(6),
-            '7회(%)':rateA(7),
-            '8회 이상(%)':rateA(8)
-          });
-        }
-        const bands=byRoomBand[room];
-        for(const band of orderBands){
-          if (band==='전체') continue;
-          const arr=bands[band]||[]; if(!arr.length) continue;
-          const inj=arr.filter(x=>x.inj>0); const injN=inj.length;
-          const avgInj = injN? average(inj.map(x=>x.inj)) : 0;
-          const avgVisit = average(arr.map(x=>x.visit));
-          const revisit2p = arr.filter(x=>x.visit>=2).length;
-          const cnt=(n)=>inj.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
-          const rate=(n)=>toPercent(cnt(n),injN);
-          rows.push({
-            '진료실':room,
-            '연령대':band,
-            '초진환자수':arr.length,
-            '초진주사환자수':injN,
-            '초진 주사처방률':toPercent(injN,arr.length),
-            '초진 평균 내원횟수':avgVisit.toFixed(1),
-            '초진 재내원율(2회 이상)':toPercent(revisit2p,arr.length),
-            '초진 주사환자 평균 주사횟수':injN?avgInj.toFixed(1):'-',
-            '주사 1회(%)':rate(1),
-            '2회(%)':rate(2),
-            '3회(%)':rate(3),
-            '4회(%)':rate(4),
-            '5회(%)':rate(5),
-            '6회(%)':rate(6),
-            '7회(%)':rate(7),
-            '8회 이상(%)':rate(8)
-          });
-        }
-      }
-      return rows;
+// 🔁 기존 computeAgeBandStats 를 이걸로 교체
+function computeAgeBandStats(merged){
+  // 방별로 모으기
+  const byRoom = {};
+  merged.forEach(r => {
+    (byRoom[r.room] ??= []).push(r);
+  });
+
+  // 숫자 진료실명(1진료실, 2진료실 …)은 숫자 기준 정렬, 그 외는 이름순
+  const roomKeys = Object.keys(byRoom).sort((a,b)=>{
+    const na = parseInt(a,10), nb = parseInt(b,10);
+    const an = !isNaN(na), bn = !isNaN(nb);
+    if (an && bn) return na - nb;
+    if (an) return -1;
+    if (bn) return 1;
+    return a.localeCompare(b);
+  });
+
+  const ORDER_BANDS = ['0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상'];
+  const rows = [];
+
+  // 공통 계산 헬퍼
+  const toPercent = (num, den) => den ? Math.round((num/den)*100)+'%' : '0%';
+  const average = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+
+  function pushBandRows(label, arr){
+    // 각 연령대 행들 먼저
+    const byBand = {};
+    arr.forEach(x=>{
+      const band = getAgeBand(x.age);
+      (byBand[band] ??= []).push(x);
+    });
+
+    for (const band of ORDER_BANDS){
+      const a = byBand[band] || [];
+      if (!a.length) continue;
+      const inj = a.filter(x=>x.inj>0);
+      const injN = inj.length;
+      const avgInj = injN ? average(inj.map(x=>x.inj)) : 0;
+      const avgVisit = average(a.map(x=>x.visit));
+      const revisit2p = a.filter(x=>x.visit>=2).length;
+
+      const cnt = (n)=>inj.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
+      const rate = (n)=>toPercent(cnt(n), injN);
+
+      rows.push({
+        '진료실': label,
+        '연령대': band,
+        '초진환자수': a.length,
+        '초진주사환자수': injN,
+        '초진 주사처방률': toPercent(injN, a.length),
+        '초진 평균 내원횟수': avgVisit.toFixed(1),
+        '초진 재내원율(2회 이상)': toPercent(revisit2p, a.length),
+        '초진 주사환자 평균 주사횟수': avgInj.toFixed(1),
+        '주사 1회(%)': rate(1),
+        '2회(%)': rate(2),
+        '3회(%)': rate(3),
+        '4회(%)': rate(4),
+        '5회(%)': rate(5),
+        '6회(%)': rate(6),
+        '7회(%)': rate(7),
+        '8회 이상(%)': rate(8)
+      });
     }
+
+    // 그 다음, 해당 진료실의 ‘전체’ 합계 행을 맨 아래에
+    if (arr.length){
+      const injAll = arr.filter(x=>x.inj>0);
+      const injAllN = injAll.length;
+      const avgInjAll = injAllN ? average(injAll.map(x=>x.inj)) : 0;
+      const avgVisitAll = average(arr.map(x=>x.visit));
+      const revisit2pAll = arr.filter(x=>x.visit>=2).length;
+
+      const cntA = (n)=>injAll.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
+      const rateA = (n)=>toPercent(cntA(n), injAllN);
+
+      rows.push({
+        '진료실': label,
+        '연령대': '전체',
+        '초진환자수': arr.length,
+        '초진주사환자수': injAllN,
+        '초진 주사처방률': toPercent(injAllN, arr.length),
+        '초진 평균 내원횟수': avgVisitAll.toFixed(1),
+        '초진 재내원율(2회 이상)': toPercent(revisit2pAll, arr.length),
+        '초진 주사환자 평균 주사횟수': avgInjAll.toFixed(1),
+        '주사 1회(%)': rateA(1),
+        '2회(%)': rateA(2),
+        '3회(%)': rateA(3),
+        '4회(%)': rateA(4),
+        '5회(%)': rateA(5),
+        '6회(%)': rateA(6),
+        '7회(%)': rateA(7),
+        '8회 이상(%)': rateA(8)
+      });
+    }
+  }
+
+  // 🔹 각 진료실: 연령대들 → 맨 아래 ‘전체’
+  for (const room of roomKeys){
+    pushBandRows(room, byRoom[room]);
+  }
+
+  // 🔹 모든 진료실을 합친 최종 '전체' 블록을 표 맨 끝에 추가
+  if (merged.length){
+    pushBandRows('전체', merged);
+  }
+
+  return rows;
+}
+
 
     /* ===== 렌더 ===== */
     function renderTableSimple(data){
@@ -576,5 +656,22 @@
       // 표는 다음 계산 시 컴팩트/상세가 반영됩니다.
     });
   </script>
+
+
+    <!-- ✅ 인쇄용 함수 (3️⃣) -->
+  <script>
+  function reorderForPrint() {
+    const wrap = document.querySelector('.wrap');
+    const summaryCard = document.querySelector('#summaryOutput')?.closest('.card');
+    const ageCard = document.querySelector('#output')?.closest('.card');
+    if (wrap && summaryCard && ageCard) {
+      wrap.insertBefore(summaryCard, ageCard);
+    }
+    window.print();
+  }
+  </script>
+
+
+  
 </body>
 </html>
