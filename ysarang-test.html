@@ -422,10 +422,22 @@
       fileMap.clinic.forEach(room=>{
         const rows = room.data.length>2? room.data.slice(2): room.data;
         rows.forEach(r=>{
-          const id=r[0]?.toString().trim(); const rrn=r[2]?.toString().trim();
-          if(!id||!rrn||!rrn.includes('-')) return;
-          const key=id+'_'+rrn+'_'+room.name; if(seen.has(key)) return; seen.add(key);
-          clinicRows.push({ id, age:calculateAge(rrn), room:room.name });
+          const id  = r[0]?.toString().trim();
+const rrn = r[2]?.toString().trim?.() || '';
+if (!id) return;
+
+// 주민번호/생년월일이 없어도 포함 (나이는 null로 처리)
+const age =
+  rrn.includes('-') ? calculateAge(rrn) :
+  (parseAge(rrn) ?? null);
+
+// 중복키는 'id+진료실'로 단순화 (주민번호 형식 차이로 빠지는 것 방지)
+const key = id + '_' + room.name;
+if (seen.has(key)) return;
+seen.add(key);
+
+clinicRows.push({ id, age, room: room.name });
+
         });
       });
       const bMap = fileMap.b? buildCountMap(fileMap.b,0,3):{};
