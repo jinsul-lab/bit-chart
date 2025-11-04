@@ -435,7 +435,12 @@
     function runAnalysis(fileMap){
       const seen=new Set(); const clinicRows=[];
       fileMap.clinic.forEach(room=>{
-        const rows = room.data.length>2? room.data.slice(2): room.data;
+        // 상단 설명행(합계 등) 제외 - 실제 데이터는 4행 이후부터 시작
+const rows = room.data.slice(4).filter(r => r && r.length >= 4);
+        const headerIndex = room.data.findIndex(r => String(r[0]).includes('차트번호'));
+const rows = room.data.slice((headerIndex >= 0 ? headerIndex + 1 : 4)).filter(r => r && r.length >= 4);
+
+
         rows.forEach(r=>{
           const id  = r[0]?.toString().trim();
 const rrn = r[2]?.toString().trim?.() || '';
