@@ -89,19 +89,19 @@
           <label>초진 파일(진료실별 또는 담당의별)</label>
           <label>진료실별 또는 담당의별로 초진 파일을 받아주세요</label>
           <label>🚫진료실이 여러개면 꼭! 진료실별 초진 파일 받아주세요🚫</label>
-                    <input type="file" id="clinicFiles" multiple accept=".xlsx" />
+                    <input type="file" id="clinicFiles" multiple accept=".xlsx,.xls" />
         </div>
         <div>
           <label>주사 파일</label>
           <label>리도카인, 엠카인 등 병원에서 쓰는 마취제 받아주세요</label>
           <label>❤️진료실별로 받지 않아도 됩니다❤️</label>          
-          <input type="file" id="bFile" accept=".xlsx" />
+          <input type="file" id="bFile" accept=".xlsx,.xls" />
         </div>
         <div>
           <label>총 환자(초진+재진)</label>
           <label>초진, 재진 진찰료 파일 각각 받아서 1개로 합쳐도 됩니다❗</label>
           <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
-          <input type="file" id="vFile" accept=".xlsx" />
+          <input type="file" id="vFile" accept=".xlsx,.xls" />
         </div>
         <div class="right">
           <button id="runBtn">통계 계산</button>
@@ -436,9 +436,12 @@
       const seen=new Set(); const clinicRows=[];
       fileMap.clinic.forEach(room=>{
         // 상단 설명행(합계 등) 제외 - 실제 데이터는 4행 이후부터 시작
-const rows = room.data.slice(4).filter(r => r && r.length >= 4);
-        const headerIndex = room.data.findIndex(r => String(r[0]).includes('차트번호'));
-const rows = room.data.slice((headerIndex >= 0 ? headerIndex + 1 : 4)).filter(r => r && r.length >= 4);
+const headerIndex = room.data.findIndex(r => r && String(r[0]).includes('차트번호'));
+const startRow = headerIndex >= 0 ? headerIndex + 1 : 4;
+const rows = room.data
+  .slice(startRow)
+  .filter(r => Array.isArray(r) && r.length >= 4);
+
 
 
         rows.forEach(r=>{
