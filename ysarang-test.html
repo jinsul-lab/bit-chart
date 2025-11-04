@@ -74,17 +74,20 @@
       <div class="grid">
         <div>
           <label>초진 파일(진료실별 또는 담당의별)</label>
+          <label>진료실별 또는 담당의별로 초진 파일을 받아주세요</label>
           <label>🚫진료실이 여러개면 꼭! 진료실별 초진 파일 받아주세요🚫</label>
           <input type="file" id="clinicFiles" multiple accept=".xlsx,.xls" />
         </div>
         <div>
           <label>주사 파일</label>
           <label>리도카인, 엠카인 등 병원에서 쓰는 마취제 받아주세요</label>
+          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>     
           <input type="file" id="bFile" accept=".xlsx,.xls" />
         </div>
         <div>
           <label>총 환자(초진+재진)</label>
           <label>초진, 재진 진찰료 파일 각각 받아서 1개로 합쳐도 됩니다❗</label>
+          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
           <input type="file" id="vFile" accept=".xlsx,.xls" />
         </div>
         <div class="right">
@@ -298,7 +301,7 @@
           '8회 이상 내원율':toPercent(cnt8p,total.length)
         });
       }
-      const order=['전체','1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실'];
+      const order=['1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실','전체'];
       result.sort((a,b)=>{const ai=order.indexOf(a['구분']),bi=order.indexOf(b['구분']);return (ai==-1)-(bi==-1)||ai-bi||a['구분'].localeCompare(b['구분'])});
       return result;
     }
@@ -306,8 +309,8 @@
     function computeAgeBandStats(merged){
       const byRoomBand={};
       merged.forEach(r=>{ const band=getAgeBand(r.age); (byRoomBand[r.room]??=( {} ))[band]??=[]; byRoomBand[r.room][band].push(r); });
-      const orderRooms=['1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실'];
-      const orderBands=['전체','0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상'];
+      const orderRooms=['1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실','전체'];
+      const orderBands=['0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상','전체'];
       const rows=[];
       const roomKeys=Object.keys(byRoomBand).sort((a,b)=>{const ai=orderRooms.indexOf(a),bi=orderRooms.indexOf(b);if(ai===-1&&bi===-1)return a.localeCompare(b);if(ai===-1)return 1;if(bi===-1)return -1;return ai-bi});
       for(const room of roomKeys){
