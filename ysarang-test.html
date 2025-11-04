@@ -175,6 +175,21 @@
       return age;
     }
 
+
+    function parseAge(val) {
+      if (!val) return null;
+      const s = String(val).replace(/\D/g, '');
+      if (s.length < 4) return null;
+      const year = s.length === 8 ? parseInt(s.slice(0, 4))
+                 : s.length === 6 ? parseInt(s.slice(0, 2)) + 1900
+                 : null;
+      if (!year) return null;
+      const birth = new Date(year, 0, 1);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      return age;
+    }
+    
     function getAgeBand(age) {
       if (age == null || isNaN(age)) return '미상';
       if (age < 18) return '0-18세 미만';
