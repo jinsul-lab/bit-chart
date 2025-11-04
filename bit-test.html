@@ -136,6 +136,39 @@ function findHeaderIndex(rows) {
   });
 }
 
+/* ✅ 파일 로드 부분 교체 (기존 이벤트 리스너 대체) */
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
+  if (!file) return;
+
+  const isCSV = /\.csv$/i.test(file.name);
+  const reader = new FileReader();
+
+  reader.onload = function(evt) {
+    let rawData = [];
+
+    if (isCSV) {
+      // ✅ CSV: 구분자 자동 감지 + 따옴표/BOM 안전 처리
+      const rows = smartCSVtoRows(evt.target.result);
+      rawData = rows;
+      parseData(rawData, keyword);
+    } else {
+      // ✅ XLS/XLSX: 기존 방식 그대로
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      workbook.SheetNames.forEach(sheet => {
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheet], { header: 1, defval: "" });
+        rawData = rawData.concat(rows);
+      });
+      parseData(rawData, keyword);
+    }
+  };
+
+  if (isCSV) reader.readAsText(file); // 텍스트로 읽기 (UTF-8/EUC-KR 모두 대응)
+  else reader.readAsArrayBuffer(file);
+});
+
 
     function getAgeGroup(raw) {
       if (!raw || typeof raw !== 'string') return "전체";
