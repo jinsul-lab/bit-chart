@@ -73,6 +73,19 @@
       .table-card:nth-of-type(1) {
         order: -1;
       }
+
+
+      @media print {
+  /* 업로드 카드/버튼 숨김 */
+  .no-print { display: none !important; }
+
+  /* 프린트 가독성 */
+  body { background: #fff; }
+  .card { box-shadow: none; border-color: #ddd; }
+  .table-card { break-inside: avoid; page-break-inside: avoid; }
+  table { page-break-inside: auto; }
+}
+
     }
 
     }
@@ -86,6 +99,17 @@
 
   <div class="wrap">
     <div class="card">
+
+
+
+<div class="card no-print">
+  <div class="grid">
+    <!-- 키워드 입력 / 파일 input / 파일 선택 버튼 -->
+  </div>
+
+
+
+      
       <div class="grid">
         <div>
           <label>초진 파일(진료실별 또는 담당의별)</label>
