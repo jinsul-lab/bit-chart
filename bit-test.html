@@ -172,62 +172,31 @@
     }
 
     /* ------------ 표 렌더: 연령대 ------------ */
-<script>
-  function renderAgeTable(result) {
-    // 진료실 → 연령대 순 정렬
-    result.sort((a, b) => {
-      if (a["구분"] !== b["구분"]) return a["구분"].localeCompare(b["구분"]);
-      const ORDER = ["0~10대","20대","30대","40대","50대","60대","70대이상","전체"];
-      return ORDER.indexOf(a["연령대"]) - ORDER.indexOf(b["연령대"]);
-    });
-
-    if (!result.length) {
-      document.getElementById('output').innerHTML = "";
-      return;
-    }
-
-    // 표에 표시할 컬럼을 명시(존재하는 것만 사용)
-    const desired = [
-      "초진환자수","초진주사환자수","초진 주사처방률",
-      "초진 주사환자 평균 주사횟수","초진 주사환자 평균내원횟수",
-      "초진 주사환자 재진율",
-      "(18세▲)초진환자수","(18세▲)초진주사수","(18세▲)초진주사처방률",
-      "초진 평균 내원횟수","초진 재내원율",
-      "1회 내원 비율","2회 내원 비율","3회 내원 비율","4회 내원 비율",
-      "5회 내원 비율","6회 내원 비율","7회 내원 비율","8회 이상 내원 비율"
-    ];
-    const cols = desired.filter(col => result.some(r => col in r));
-    if (!cols.length) {
-      document.getElementById('output').innerHTML = "";
-      return;
-    }
-
-    // 진료실별 rowspan 계산
-    const groupRows = {};
-    result.forEach(r => { groupRows[r["구분"]] = (groupRows[r["구분"]] || 0) + 1; });
-
-    // 헤더
-    let html = '<table><thead><tr><th>진료실</th><th>연령대</th>';
-    html += cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
-
-    // 바디
-    let prev = null;
-    result.forEach(row => {
-      html += '<tr>';
-      if (row["구분"] !== prev) {
-        html += `<td rowspan="${groupRows[row["구분"]]}">${row["구분"]}</td>`;
-        prev = row["구분"];
+    function renderAgeTable(result) {
+      result.sort(sortResult);
+      const keys = Object.keys(result[0] || {}).filter(k => k !== '구분' && k !== '연령대');
+      if (keys.length === 0) {
+        document.getElementById('warning').innerText = '❗ 통계 데이터를 생성할 수 없습니다. 열 이름을 확인하세요.';
+        return;
       }
-      html += `<td>${row["연령대"]}</td>`;
-      html += cols.map(k => `<td>${formatCell(row[k])}</td>`).join('');
-      html += '</tr>';
-    });
 
-    html += '</tbody></table>';
-    document.getElementById('output').innerHTML = html;
-  }
-</script>
+      let html = '<table><thead><tr><th>진료실</th><th>연령대</th>' + keys.map(k => `<th>${k}</th>`).join('') + '</tr></thead><tbody>';
+      let prevGroup = null;
+      let groupRows = {};
+      result.forEach(row => { groupRows[row["구분"]] = (groupRows[row["구분"]] || 0) + 1; });
 
+      result.forEach(row => {
+        html += `<tr>`;
+        if (row["구분"] !== prevGroup) {
+          html += `<td rowspan="${groupRows[row["구분"]]}">${row["구분"]}</td>`;
+          prevGroup = row["구분"];
+        }
+        html += `<td>${row["연령대"]}</td>` + keys.map(k => `<td>${formatCell(row[k])}</td>`).join('') + '</tr>';
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('output').innerHTML = html;
+    }
 
     /* ------------ 파일 로드 ------------ */
     document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -345,9 +314,9 @@ const injRevisitRate = Object.keys(내원횟수).length
           "초진환자수": 초진차트.length,
           "초진주사환자수": 주사.length,
           "초진 주사처방률": `${초진차트.length ? Math.round((주사.length/초진차트.length)*100) : 0}%`,
+          "초진 주사환자 재진율": injRevisitRate,
           "초진 주사환자 평균 주사횟수": 평균주사,
           "초진 주사환자 평균내원횟수": 평균내원,
-          "초진 주사환자 재진율": injRevisitRate,
           "(18세▲)초진환자수": adultFirstCharts.length,
           "(18세▲)초진주사수": adultInj.length,
           "(18세▲)초진주사처방률": adultRate,
