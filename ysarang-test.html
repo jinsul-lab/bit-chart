@@ -298,7 +298,7 @@
           '5회 주사':toPercent(cnt5,total.length),
           '6회 주사':toPercent(cnt6,total.length),
           '7회 주사':toPercent(cnt7,total.length),
-          '8회 이상 주사사':toPercent(cnt8p,total.length)
+          '8회 이상 주사':toPercent(cnt8p,total.length)
         });
       }
       const order=['1진료실','2진료실','3진료실','4진료실','5진료실','6진료실','7진료실','8진료실','9진료실','10진료실','전체'];
@@ -338,7 +338,7 @@
             '5회 주사':rateA(5),
             '6회 주사':rateA(6),
             '7회 주사':rateA(7),
-            '8회 이상(%)':rateA(8)
+            '8회 이상':rateA(8)
           });
         }
         const bands=byRoomBand[room];
@@ -367,7 +367,7 @@
             '5회 주사':rate(5),
             '6회 주사':rate(6),
             '7회 주사':rate(7),
-            '8회 이상(%)':rate(8)
+            '8회 이상':rate(8)
           });
         }
       }
@@ -389,7 +389,7 @@
       if (!data.length) return '';
       const headers = Object.keys(data[0]);
       const isCompact = !!opts.compact;
-      const distCols = ['주사 1회 주사','2회 주사','3회 주사','4회 주사','5회 주사','6회 주사','7회 주사','8회 이상(%)'];
+      const distCols = ['주사 1회 주사','2회 주사','3회 주사','4회 주사','5회 주사','6회 주사','7회 주사','8회 이상'];
 
       let thead = '<tr><th>진료실</th>';
       headers.slice(1).forEach(h=>{
