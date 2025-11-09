@@ -129,6 +129,16 @@
         <div class="right">
           <button id="runBtn">통계 계산</button>
 
+
+          <!-- 기존 grid 안의 세 번째 div(총 환자) 다음에 붙여넣기 -->
+<div>
+  <label>연락처 파일 (차트번호 + 전화번호)</label>
+  <label>CSV / XLSX / XLS 지원</label>
+  <input type="file" id="contactFile" accept=".csv,.xlsx,.xls" />
+</div>
+
+          
+
         </div>
       </div>
       <div class="right" style="margin-top:8px">
@@ -146,6 +156,15 @@
       <div class="metric"><h3>초진 평균 내원횟수</h3><p id="m-visit-avg">-</p></div>
       <div class="metric"><h3>재내원율(2회 이상)</h3><p id="m-revisit">-</p></div>
     </div>
+
+
+      <!-- 요약 지표 카드 바로 아래 어딘가, 예: 요약 표 카드 안쪽 -->
+<div style="margin-top:8px; display:none" id="exportSingleInjWrap">
+  <button id="exportSingleInjBtn">초진·주사 1회 대상 전화번호 다운로드 (CSV)</button>
+  <span id="exportSingleInjCount" style="margin-left:8px; color:#6b7280; font-size:12px"></span>
+</div>
+
+      
 
     <div class="card table-card">
       <h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
@@ -527,23 +546,31 @@ function computeAgeBandStats(merged){
       XLSX.writeFile(wb, filename);
     }
 
-    async function processFiles(){
-      const clinicFiles=$('#clinicFiles').files; const bFile=$('#bFile').files[0]; const vFile=$('#vFile').files[0];
-      if(!clinicFiles.length){alert('진료실 파일은 반드시 업로드해야 합니다');return;}
-      $('#runBtn').disabled=true; $('#runBtn').textContent='계산 중…';
-      try{
-        const clinic=[];
-        for(const f of clinicFiles){
-          clinic.push({name:normalizeRoomName(f.name), data:await readXlsx(f)});
-        }
-        const b = bFile? await readXlsx(bFile):null;
-        const v = vFile? await readXlsx(vFile):null;
-        runAnalysis({clinic,b,v});
-      }catch(e){
-        console.error(e); alert('파일 처리 중 오류가 발생했습니다.');
-      }finally{
-        $('#runBtn').disabled=false; $('#runBtn').textContent='통계 계산';
-      }
+   async function processFiles(){
+  const clinicFiles=$('#clinicFiles').files;
+  const bFile=$('#bFile').files[0];
+  const vFile=$('#vFile').files[0];
+  const cFile=$('#contactFile').files[0];   // ✅ 추가
+
+  if(!clinicFiles.length){ alert('진료실 파일은 반드시 업로드해야 합니다'); return; }
+  $('#runBtn').disabled=true; $('#runBtn').textContent='계산 중…';
+  try{
+    const clinic=[]; for(const f of clinicFiles){ clinic.push({name:normalizeRoomName(f.name), data:await readXlsx(f)}); }
+    const b = bFile? await readXlsx(bFile):null;
+    const v = vFile? await readXlsx(vFile):null;
+
+    // ✅ 연락처 파일은 CSV도 올 수 있으니 readAnyGrid 사용
+    let phoneMap = {};
+    if (cFile){
+      const contGrid = await readAnyGrid(cFile);
+      phoneMap = buildPhoneMapFromGrid(contGrid);
+    }
+
+    runAnalysis({clinic,b,v, phoneMap});   // ✅ phoneMap 전달
+  }catch(e){ console.error(e); alert('파일 처리 중 오류가 발생했습니다.'); }
+  finally{ $('#runBtn').disabled=false; $('#runBtn').textContent='통계 계산'; }
+}
+
     }
 
     function runAnalysis(fileMap){
@@ -602,6 +629,42 @@ function computeAgeBandStats(merged){
       const stats = computeStats(merged);
       const byAge = computeAgeBandStats(merged);
 
+
+// ✅ 주사 1회 대상(id) 추출 (의사랑은 clinic이 '초진'만 들어오므로 초진 조건 충족)
+const singleInj = merged.filter(r => r.inj === 1);
+
+// ✅ 연락처 매핑이 있는 경우만 버튼 노출하고 CSV 만들기
+(function setupSingleInjExport(){
+  const $wrap = document.getElementById('exportSingleInjWrap');
+  const $btn  = document.getElementById('exportSingleInjBtn');
+  const $cnt  = document.getElementById('exportSingleInjCount');
+  if (!$wrap || !$btn) return;
+
+  const phoneMap = fileMap.phoneMap || {};
+  // id 중복 제거 + 전화번호 있는 것만
+  const uniq = Array.from(new Set(singleInj.map(x=>x.id)))
+                    .map(id => ({ id, phone: phoneMap[id] }))
+                    .filter(x => x.phone && x.phone.replace(/\D+/g,'').length>=10);
+
+  $cnt.textContent = uniq.length ? `대상 ${uniq.length}건` : '';
+  $wrap.style.display = uniq.length ? 'block' : 'none';
+
+  $btn.onclick = ()=>{
+    if (!uniq.length) return;
+    let csv = 'chart_id,phone\n' + uniq.map(x => `${x.id},${x.phone}`).join('\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const yymm = new Date().toISOString().slice(0,7);
+    a.href = url; a.download = `single-injection-phones_${yymm}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+})();
+
+
+      
+
       const overall = stats.find(s=>s['구분']==='전체');
       if (overall){
         $('#summary').style.display='grid';
@@ -640,6 +703,88 @@ function computeAgeBandStats(merged){
       }
       return -1;
     }
+
+    /* ===== 연락처 CSV/XLSX/XLS 읽기 & 열 감지 ===== */
+
+// 차트번호 열 자동감지
+function detectChartCol(headers){
+  const keys = ['차트','챠트','id','환자','등록'];
+  for (const h of headers){
+    const s = String(h||'').toLowerCase();
+    if (keys.some(k => s.includes(k))) return h;
+  }
+  return null;
+}
+
+// 전화번호 열 자동감지
+function detectPhoneCol(headers){
+  const keys = ['전화','연락','휴대','핸드','핸드폰','mobile','phone','tel'];
+  for (const h of headers){
+    const s = String(h||'').toLowerCase();
+    if (keys.some(k => s.includes(k))) return h;
+  }
+  return null;
+}
+
+// 한국 전화번호 정규화
+function normalizeKRPhone(raw){
+  if (!raw) return '';
+  let d = String(raw).replace(/\D+/g,'');
+  if (/^82/.test(d)) d = '0' + d.slice(2);
+  if (d.length === 11) return d.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+  if (d.length === 10) return d.replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+  return d;
+}
+
+// CSV/XLSX/XLS 모두 2D 배열로 읽기
+async function readAnyGrid(file){
+  const name = file.name.toLowerCase();
+  const buf = await file.arrayBuffer();
+  // csv면 문자열로, 아니면 array
+  const isCSV = name.endsWith('.csv');
+  const wb = isCSV
+    ? XLSX.read(new TextDecoder('utf-8').decode(new Uint8Array(buf)), { type:'string' })
+    : XLSX.read(buf, { type:'array' });
+  const all = [];
+  wb.SheetNames.forEach(s=>{
+    const ws = wb.Sheets[s];
+    const arr = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
+    all.push(...arr);
+  });
+  return all;
+}
+
+// 첫 헤더 행 찾기 (차트/전화 키워드 기반)
+function findContactHeaderIndex(rows){
+  return rows.findIndex(row=>{
+    const cells = row.map(c => String(c||'').toLowerCase());
+    const hasChart = cells.some(c => /차트|챠트|환자|등록|id/.test(c));
+    const hasPhone = cells.some(c => /전화|연락|휴대|핸드|mobile|phone|tel/.test(c));
+    return hasChart && hasPhone;
+  });
+}
+
+// 연락처 파일 → { chartId -> phone } 맵 만들기
+function buildPhoneMapFromGrid(rows){
+  const hi = findContactHeaderIndex(rows);
+  if (hi === -1) return {};
+  const headers = rows[hi].map(h => String(h).trim());
+  const body = rows.slice(hi+1).filter(r => r.length>1);
+  const chartCol = detectChartCol(headers);
+  const phoneCol = detectPhoneCol(headers);
+  if (!chartCol || !phoneCol) return {};
+  const map = {};
+  body.forEach(r=>{
+    const obj = Object.fromEntries(headers.map((h,i)=>[h, r[i] ?? '']));
+    const id = String(obj[chartCol] ?? '').trim();
+    let ph = normalizeKRPhone(obj[phoneCol]);
+    const d = ph.replace(/\D+/g,'');
+    if (!id) return;
+    if (d.length>=10 && d.length<=11) map[id]=ph; // 마지막 값으로 덮어쓰기(최근)
+  });
+  return map;
+}
+
 
     // 이벤트
     $('#runBtn').addEventListener('click', processFiles);
