@@ -21,7 +21,7 @@
     .wrap{padding:16px; max-width:1200px; margin:0 auto}
     .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-top:12px}
     .card-title{margin:0 0 8px; font-weight:700; color:#111827}
-    .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr auto}
+    .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr 1fr}
     label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
     input[type=file]{width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:#fff; color:var(--text)}
     button{height:38px; border-radius:10px; border:1px solid var(--border);
@@ -61,33 +61,13 @@
       th,td{font-size:11px}
     }
 
-    /* ✅ 인쇄용 (1️⃣) */
+    /* ✅ 인쇄용 */
     @media print {
-      body {
-        display: block !important;
-      }
-      .table-card {
-        page-break-inside: avoid;
-        break-inside: avoid-page;
-      }
-      .table-card:nth-of-type(1) {
-        order: -1;
-      }
-
-
-      @media print {
-  /* 업로드 카드/버튼 숨김 */
-  .no-print { display: none !important; }
-
-  /* 프린트 가독성 */
-  body { background: #fff; }
-  .card { box-shadow: none; border-color: #ddd; }
-  .table-card { break-inside: avoid; page-break-inside: avoid; }
-  table { page-break-inside: auto; }
-}
-
-    }
-
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .card { box-shadow: none; border-color: #ddd; }
+      .table-card { break-inside: avoid; page-break-inside: avoid; }
+      table { page-break-inside: auto; }
     }
   </style>
 </head>
@@ -98,15 +78,7 @@
   </header>
 
   <div class="wrap">
-    <div class="card"> 
-
-
-<div class="card no-print">
-  <div class="grid">
-    <!-- 키워드 입력 / 파일 input / 파일 선택 버튼 -->
-  </div>
-
-      
+    <div class="card no-print">
       <div class="grid">
         <div>
           <label>초진 파일(진료실별 또는 담당의별)</label>
@@ -126,22 +98,14 @@
           <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
           <input type="file" id="vFile" accept=".xlsx,.xls" />
         </div>
-        <div class="right">
-          <button id="runBtn">통계 계산</button>
-
-
-          <!-- 기존 grid 안의 세 번째 div(총 환자) 다음에 붙여넣기 -->
-<div>
-  <label>연락처 파일 (차트번호 + 전화번호)</label>
-  <label>CSV / XLSX / XLS 지원</label>
-  <input type="file" id="contactFile" accept=".csv,.xlsx,.xls" />
-</div>
-
-          
-
+        <div>
+          <label>연락처 파일 (차트번호 + 전화번호)</label>
+          <label>CSV / XLSX / XLS 지원</label>
+          <input type="file" id="contactFile" accept=".csv,.xlsx,.xls" />
         </div>
       </div>
       <div class="right" style="margin-top:8px">
+        <button id="runBtn">통계 계산</button>
         <button id="toggleCompactBtn" title="표를 한 페이지로 보기">컴팩트 보기</button>
         <button id="downloadBtn" disabled>결과 다운로드(.xlsx)</button>
         <button id="clearBtn">초기화</button>
@@ -157,14 +121,11 @@
       <div class="metric"><h3>재내원율(2회 이상)</h3><p id="m-revisit">-</p></div>
     </div>
 
-
-      <!-- 요약 지표 카드 바로 아래 어딘가, 예: 요약 표 카드 안쪽 -->
-<div style="margin-top:8px; display:none" id="exportSingleInjWrap">
-  <button id="exportSingleInjBtn">초진·주사 1회 대상 전화번호 다운로드 (CSV)</button>
-  <span id="exportSingleInjCount" style="margin-left:8px; color:#6b7280; font-size:12px"></span>
-</div>
-
-      
+    <!-- 주사 1회 대상 전화번호 다운로드 -->
+    <div style="margin-top:8px; display:none" id="exportSingleInjWrap">
+      <button id="exportSingleInjBtn">초진·주사 1회 대상 전화번호 다운로드 (CSV)</button>
+      <span id="exportSingleInjCount" style="margin-left:8px; color:#6b7280; font-size:12px"></span>
+    </div>
 
     <div class="card table-card">
       <h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
@@ -184,13 +145,12 @@
     function excelDateToISO(v) {
       if (v == null || v === '') return '';
       if (typeof v === 'string') {
-        // 2024-01-02, 2024/01/02, 20240102 등 처리
         const s = v.trim();
         if (!s) return '';
-        const m = s.match(/(\d{4})[^\d]?(\d{1,2})[^\d]?(\d{1,2})/);
+        const m = s.match(/(\\d{4})[^\\d]?(\\d{1,2})[^\\d]?(\\d{1,2})/);
         if (m) {
           const y = m[1], mo = String(m[2]).padStart(2,'0'), d = String(m[3]).padStart(2,'0');
-          return `${y}-${mo}-${d}`;
+          return \`\${y}-\${mo}-\${d}\`;
         }
         return s;
       }
@@ -199,11 +159,11 @@
         const utc_value = utc_days * 86400;
         const d = new Date(utc_value * 1000);
         const y=d.getUTCFullYear(), m=String(d.getUTCMonth()+1).padStart(2,'0'), dd=String(d.getUTCDate()).padStart(2,'0');
-        return `${y}-${m}-${dd}`;
+        return \`\${y}-\${m}-\${dd}\`;
       }
       if (v instanceof Date) {
         const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,'0'), d=String(v.getDate()).padStart(2,'0');
-        return `${y}-${m}-${d}`;
+        return \`\${y}-\${m}-\${d}\`;
       }
       return String(v);
     }
@@ -230,14 +190,14 @@
 
     function parseAgeFromBirthish(val){
       if (!val) return null;
-      const s = String(val).replace(/\D/g,'');
+      const s = String(val).replace(/\\D/g,'');
       if (s.length === 8) { // YYYYMMDD
         const y = parseInt(s.slice(0,4),10);
         if (!y) return null;
         const today = new Date();
         return today.getFullYear()-y;
       }
-      if (s.length === 6) { // YYMMDD -> 1900s 가정 (의사랑 일부 양식)
+      if (s.length === 6) { // YYMMDD -> 1900s 가정
         const yy = parseInt(s.slice(0,2),10);
         const y = 1900 + yy;
         const today = new Date();
@@ -257,12 +217,10 @@
       return '70대 이상';
     }
 
-    // 헤더 자동 탐지 빌더: id/날짜 헤더 후보를 보고 열 인덱스 찾아서 카운트
     function buildCountMapByHeader(data, idHeaderCandidates, dateHeaderCandidates) {
       const countMap = {};
       if (!data || !data.length) return countMap;
 
-      // 헤더 행 찾기 (상위 15행 탐색)
       let headerRow = null, headerIdx = -1;
       for (let i=0;i<Math.min(15, data.length);i++){
         const row = data[i] || [];
@@ -273,7 +231,6 @@
       }
       if (!headerRow) headerRow = data[0], headerIdx = 0;
 
-      // 인덱스 결정
       const headersLower = headerRow.map(h => String(h||'').toLowerCase());
       const findIdx = (cands) => {
         for (const c of cands) {
@@ -362,126 +319,117 @@
       return result;
     }
 
-// 🔁 기존 computeAgeBandStats 를 이걸로 교체
-function computeAgeBandStats(merged){
-  // 방별로 모으기
-  const byRoom = {};
-  merged.forEach(r => {
-    (byRoom[r.room] ??= []).push(r);
-  });
-
-  // 숫자 진료실명(1진료실, 2진료실 …)은 숫자 기준 정렬, 그 외는 이름순
-  const roomKeys = Object.keys(byRoom).sort((a,b)=>{
-    const na = parseInt(a,10), nb = parseInt(b,10);
-    const an = !isNaN(na), bn = !isNaN(nb);
-    if (an && bn) return na - nb;
-    if (an) return -1;
-    if (bn) return 1;
-    return a.localeCompare(b);
-  });
-
-  const ORDER_BANDS = ['0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상'];
-  const rows = [];
-
-  // 공통 계산 헬퍼
-  const toPercent = (num, den) => den ? Math.round((num/den)*100)+'%' : '0%';
-  const average = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
-
-  function pushBandRows(label, arr){
-    // 각 연령대 행들 먼저
-    const byBand = {};
-    arr.forEach(x=>{
-      const band = getAgeBand(x.age);
-      (byBand[band] ??= []).push(x);
-    });
-
-    for (const band of ORDER_BANDS){
-      const a = byBand[band] || [];
-      if (!a.length) continue;
-      const inj = a.filter(x=>x.inj>0);
-      const injN = inj.length;
-      const avgInj = injN ? average(inj.map(x=>x.inj)) : 0;
-      const avgVisit = average(a.map(x=>x.visit));
-      const revisit2p = a.filter(x=>x.visit>=2).length;
-
-      const cnt = (n)=>inj.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
-      const rate = (n)=>toPercent(cnt(n), injN);
-
-      rows.push({
-        '진료실': label,
-        '연령대': band,
-        '초진환자수': a.length,
-        '초진주사환자수': injN,
-        '초진 주사처방률': toPercent(injN, a.length),
-        '초진 평균 내원횟수': avgVisit.toFixed(1),
-        '초진 재내원율(2회 이상)': toPercent(revisit2p, a.length),
-        '초진 주사환자 평균 주사횟수': avgInj.toFixed(1),
-        '주사 1회(%)': rate(1),
-        '2회(%)': rate(2),
-        '3회(%)': rate(3),
-        '4회(%)': rate(4),
-        '5회(%)': rate(5),
-        '6회(%)': rate(6),
-        '7회(%)': rate(7),
-        '8회 이상(%)': rate(8)
+    function computeAgeBandStats(merged){
+      const byRoom = {};
+      merged.forEach(r => {
+        (byRoom[r.room] ??= []).push(r);
       });
-    }
 
-    // 그 다음, 해당 진료실의 ‘전체’ 합계 행을 맨 아래에
-    if (arr.length){
-      const injAll = arr.filter(x=>x.inj>0);
-      const injAllN = injAll.length;
-      const avgInjAll = injAllN ? average(injAll.map(x=>x.inj)) : 0;
-      const avgVisitAll = average(arr.map(x=>x.visit));
-      const revisit2pAll = arr.filter(x=>x.visit>=2).length;
-
-      const cntA = (n)=>injAll.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
-      const rateA = (n)=>toPercent(cntA(n), injAllN);
-
-      rows.push({
-        '진료실': label,
-        '연령대': '전체',
-        '초진환자수': arr.length,
-        '초진주사환자수': injAllN,
-        '초진 주사처방률': toPercent(injAllN, arr.length),
-        '초진 평균 내원횟수': avgVisitAll.toFixed(1),
-        '초진 재내원율(2회 이상)': toPercent(revisit2pAll, arr.length),
-        '초진 주사환자 평균 주사횟수': avgInjAll.toFixed(1),
-        '주사 1회(%)': rateA(1),
-        '2회(%)': rateA(2),
-        '3회(%)': rateA(3),
-        '4회(%)': rateA(4),
-        '5회(%)': rateA(5),
-        '6회(%)': rateA(6),
-        '7회(%)': rateA(7),
-        '8회 이상(%)': rateA(8)
+      const roomKeys = Object.keys(byRoom).sort((a,b)=>{
+        const na = parseInt(a,10), nb = parseInt(b,10);
+        const an = !isNaN(na), bn = !isNaN(nb);
+        if (an && bn) return na - nb;
+        if (an) return -1;
+        if (bn) return 1;
+        return a.localeCompare(b);
       });
+
+      const ORDER_BANDS = ['0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상'];
+      const rows = [];
+
+      const toPercent = (num, den) => den ? Math.round((num/den)*100)+'%' : '0%';
+      const average = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+
+      function pushBandRows(label, arr){
+        const byBand = {};
+        arr.forEach(x=>{
+          const band = getAgeBand(x.age);
+          (byBand[band] ??= []).push(x);
+        });
+
+        for (const band of ORDER_BANDS){
+          const a = byBand[band] || [];
+          if (!a.length) continue;
+          const inj = a.filter(x=>x.inj>0);
+          const injN = inj.length;
+          const avgInj = injN ? average(inj.map(x=>x.inj)) : 0;
+          const avgVisit = average(a.map(x=>x.visit));
+          const revisit2p = a.filter(x=>x.visit>=2).length;
+
+          const cnt = (n)=>inj.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
+          const rate = (n)=>toPercent(cnt(n), injN);
+
+          rows.push({
+            '진료실': label,
+            '연령대': band,
+            '초진환자수': a.length,
+            '초진주사환자수': injN,
+            '초진 주사처방률': toPercent(injN, a.length),
+            '초진 평균 내원횟수': avgVisit.toFixed(1),
+            '초진 재내원율(2회 이상)': toPercent(revisit2p, a.length),
+            '초진 주사환자 평균 주사횟수': avgInj.toFixed(1),
+            '주사 1회(%)': rate(1),
+            '2회(%)': rate(2),
+            '3회(%)': rate(3),
+            '4회(%)': rate(4),
+            '5회(%)': rate(5),
+            '6회(%)': rate(6),
+            '7회(%)': rate(7),
+            '8회 이상(%)': rate(8)
+          });
+        }
+
+        if (arr.length){
+          const injAll = arr.filter(x=>x.inj>0);
+          const injAllN = injAll.length;
+          const avgInjAll = injAllN ? average(injAll.map(x=>x.inj)) : 0;
+          const avgVisitAll = average(arr.map(x=>x.visit));
+          const revisit2pAll = arr.filter(x=>x.visit>=2).length;
+
+          const cntA = (n)=>injAll.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
+          const rateA = (n)=>toPercent(cntA(n), injAllN);
+
+          rows.push({
+            '진료실': label,
+            '연령대': '전체',
+            '초진환자수': arr.length,
+            '초진주사환자수': injAllN,
+            '초진 주사처방률': toPercent(injAllN, arr.length),
+            '초진 평균 내원횟수': avgVisitAll.toFixed(1),
+            '초진 재내원율(2회 이상)': toPercent(revisit2pAll, arr.length),
+            '초진 주사환자 평균 주사횟수': avgInjAll.toFixed(1),
+            '주사 1회(%)': rateA(1),
+            '2회(%)': rateA(2),
+            '3회(%)': rateA(3),
+            '4회(%)': rateA(4),
+            '5회(%)': rateA(5),
+            '6회(%)': rateA(6),
+            '7회(%)': rateA(7),
+            '8회 이상(%)': rateA(8)
+          });
+        }
+      }
+
+      for (const room of roomKeys){
+        pushBandRows(room, byRoom[room]);
+      }
+
+      if (merged.length){
+        pushBandRows('전체', merged);
+      }
+
+      return rows;
     }
-  }
-
-  // 🔹 각 진료실: 연령대들 → 맨 아래 ‘전체’
-  for (const room of roomKeys){
-    pushBandRows(room, byRoom[room]);
-  }
-
-  // 🔹 모든 진료실을 합친 최종 '전체' 블록을 표 맨 끝에 추가
-  if (merged.length){
-    pushBandRows('전체', merged);
-  }
-
-  return rows;
-}
-
 
     /* ===== 렌더 ===== */
     function renderTableSimple(data){
       if (!data.length) return '';
       const headers = Object.keys(data[0]);
-      let thead = '<tr>' + headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+      let thead = '<tr>' + headers.map(h=>\`<th>\${h}</th>\`).join('') + '</tr>';
       let tbody = data.map(row=>(
-        '<tr>' + headers.map(h=>`<td>${fmt(row[h])}</td>`).join('') + '</tr>'
+        '<tr>' + headers.map(h=>\`<td>\${fmt(row[h])}</td>\`).join('') + '</tr>'
       )).join('');
-      return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+      return \`<table><thead>\${thead}</thead><tbody>\${tbody}</tbody></table>\`;
     }
 
     function renderTableGrouped(data, opts={}){
@@ -493,7 +441,7 @@ function computeAgeBandStats(merged){
       let thead = '<tr><th>진료실</th>';
       headers.slice(1).forEach(h=>{
         const cls = distCols.includes(h) ? 'dist-col' : '';
-        thead += `<th class="${cls}">${h}</th>`;
+        thead += \`<th class="\${cls}">\${h}</th>\`;
       });
       if (isCompact) thead += '<th class="dist-merged">주사 회차 분포</th>';
       thead += '</tr>';
@@ -505,22 +453,22 @@ function computeAgeBandStats(merged){
       data.forEach(row=>{
         let tr = '<tr>';
         if (row['진료실'] !== prev){
-          tr += `<td rowspan="${counts[row['진료실']]}">${row['진료실']}</td>`;
+          tr += \`<td rowspan="\${counts[row['진료실']]}">\${row['진료실']}</td>\`;
           prev = row['진료실'];
         }
         headers.slice(1).forEach(h=>{
           const cls = distCols.includes(h) ? 'dist-col' : '';
-          tr += `<td class="${cls}">${fmt(row[h])}</td>`;
+          tr += \`<td class="\${cls}">\${fmt(row[h])}</td>\`;
         });
         if (isCompact){
-          const merged = distCols.map(k=>`${k.replace('(%)','')}:${fmt(row[k])}`).join(' · ');
-          tr += `<td class="dist-merged">${merged}</td>`;
+          const merged = distCols.map(k=>\`\${k.replace('(%)','')}:\${fmt(row[k])}\`).join(' · ');
+          tr += \`<td class="dist-merged">\${merged}</td>\`;
         }
         tr += '</tr>';
         tbody += tr;
       });
 
-      return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+      return \`<table><thead>\${thead}</thead><tbody>\${tbody}</tbody></table>\`;
     }
 
     /* ===== 파일 처리 & 실행 ===== */
@@ -532,9 +480,9 @@ function computeAgeBandStats(merged){
     }
 
     function normalizeRoomName(filename){
-      const base = filename.replace(/\.(xlsx|xls)$/i, '').replace(/진료실/g, '').trim();
-      const onlyNum = base.match(/\d+/)?.[0] ?? base;
-      return `${onlyNum}진료실`;
+      const base = filename.replace(/\\.(xlsx|xls)$/i, '').replace(/진료실/g, '').trim();
+      const onlyNum = base.match(/\\d+/)?.[0] ?? base;
+      return \`\${onlyNum}진료실\`;
     }
 
     function exportXlsx(sheets, filename='초진_주사_내원_통계.xlsx'){
@@ -546,39 +494,34 @@ function computeAgeBandStats(merged){
       XLSX.writeFile(wb, filename);
     }
 
-   async function processFiles(){
-  const clinicFiles=$('#clinicFiles').files;
-  const bFile=$('#bFile').files[0];
-  const vFile=$('#vFile').files[0];
-  const cFile=$('#contactFile').files[0];   // ✅ 추가
+    async function processFiles(){
+      const clinicFiles=$('#clinicFiles').files;
+      const bFile=$('#bFile').files[0];
+      const vFile=$('#vFile').files[0];
+      const cFile=$('#contactFile').files[0];
 
-  if(!clinicFiles.length){ alert('진료실 파일은 반드시 업로드해야 합니다'); return; }
-  $('#runBtn').disabled=true; $('#runBtn').textContent='계산 중…';
-  try{
-    const clinic=[]; for(const f of clinicFiles){ clinic.push({name:normalizeRoomName(f.name), data:await readXlsx(f)}); }
-    const b = bFile? await readXlsx(bFile):null;
-    const v = vFile? await readXlsx(vFile):null;
+      if(!clinicFiles.length){ alert('진료실 파일은 반드시 업로드해야 합니다'); return; }
+      $('#runBtn').disabled=true; $('#runBtn').textContent='계산 중…';
+      try{
+        const clinic=[]; for(const f of clinicFiles){ clinic.push({name:normalizeRoomName(f.name), data:await readXlsx(f)}); }
+        const b = bFile? await readXlsx(bFile):null;
+        const v = vFile? await readXlsx(vFile):null;
 
-    // ✅ 연락처 파일은 CSV도 올 수 있으니 readAnyGrid 사용
-    let phoneMap = {};
-    if (cFile){
-      const contGrid = await readAnyGrid(cFile);
-      phoneMap = buildPhoneMapFromGrid(contGrid);
-    }
+        let phoneMap = {};
+        if (cFile){
+          const contGrid = await readAnyGrid(cFile);
+          phoneMap = buildPhoneMapFromGrid(contGrid);
+        }
 
-    runAnalysis({clinic,b,v, phoneMap});   // ✅ phoneMap 전달
-  }catch(e){ console.error(e); alert('파일 처리 중 오류가 발생했습니다.'); }
-  finally{ $('#runBtn').disabled=false; $('#runBtn').textContent='통계 계산'; }
-}
-
+        runAnalysis({clinic,b,v, phoneMap});
+      }catch(e){ console.error(e); alert('파일 처리 중 오류가 발생했습니다.'); }
+      finally{ $('#runBtn').disabled=false; $('#runBtn').textContent='통계 계산'; }
     }
 
     function runAnalysis(fileMap){
       const seen=new Set(); const clinicRows=[];
 
-      // ===== 초진(진료실별) 파싱: 헤더 자동 탐지 =====
       fileMap.clinic.forEach(room=>{
-        // 헤더행 찾기
         let headerIndex = fileMapHeaderIndex(room.data, /(차트|챠트).*번호|차트번호|챠트번호/i);
         if (headerIndex < 0) headerIndex = 0;
         const header = room.data[headerIndex] || [];
@@ -594,7 +537,6 @@ function computeAgeBandStats(merged){
           if (!id) return;
 
           const rrnRaw = rrnIdx>=0 ? (r[rrnIdx]?.toString().trim()||'') : '';
-          // 나이 추정
           let age = null;
           if (rrnRaw && rrnRaw.includes('-')) age = calculateAge(rrnRaw);
           else if (rrnRaw) age = parseAgeFromBirthish(rrnRaw);
@@ -609,7 +551,6 @@ function computeAgeBandStats(merged){
         });
       });
 
-      // ===== 주사/방문 횟수: 헤더 기반 집계 =====
       const bMap = fileMap.b
         ? buildCountMapByHeader(fileMap.b,
             ['차트','챠트','id','아이디'],
@@ -629,41 +570,34 @@ function computeAgeBandStats(merged){
       const stats = computeStats(merged);
       const byAge = computeAgeBandStats(merged);
 
+      const singleInj = merged.filter(r => r.inj === 1);
 
-// ✅ 주사 1회 대상(id) 추출 (의사랑은 clinic이 '초진'만 들어오므로 초진 조건 충족)
-const singleInj = merged.filter(r => r.inj === 1);
+      (function setupSingleInjExport(){
+        const $wrap = document.getElementById('exportSingleInjWrap');
+        const $btn  = document.getElementById('exportSingleInjBtn');
+        const $cnt  = document.getElementById('exportSingleInjCount');
+        if (!$wrap || !$btn) return;
 
-// ✅ 연락처 매핑이 있는 경우만 버튼 노출하고 CSV 만들기
-(function setupSingleInjExport(){
-  const $wrap = document.getElementById('exportSingleInjWrap');
-  const $btn  = document.getElementById('exportSingleInjBtn');
-  const $cnt  = document.getElementById('exportSingleInjCount');
-  if (!$wrap || !$btn) return;
+        const phoneMap = fileMap.phoneMap || {};
+        const uniq = Array.from(new Set(singleInj.map(x=>x.id)))
+                          .map(id => ({ id, phone: phoneMap[id] }))
+                          .filter(x => x.phone && x.phone.replace(/\\D+/g,'').length>=10);
 
-  const phoneMap = fileMap.phoneMap || {};
-  // id 중복 제거 + 전화번호 있는 것만
-  const uniq = Array.from(new Set(singleInj.map(x=>x.id)))
-                    .map(id => ({ id, phone: phoneMap[id] }))
-                    .filter(x => x.phone && x.phone.replace(/\D+/g,'').length>=10);
+        $cnt.textContent = uniq.length ? \`대상 \${uniq.length}건\` : '';
+        $wrap.style.display = uniq.length ? 'block' : 'none';
 
-  $cnt.textContent = uniq.length ? `대상 ${uniq.length}건` : '';
-  $wrap.style.display = uniq.length ? 'block' : 'none';
-
-  $btn.onclick = ()=>{
-    if (!uniq.length) return;
-    let csv = 'chart_id,phone\n' + uniq.map(x => `${x.id},${x.phone}`).join('\n');
-    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const yymm = new Date().toISOString().slice(0,7);
-    a.href = url; a.download = `single-injection-phones_${yymm}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  };
-})();
-
-
-      
+        $btn.onclick = ()=>{
+          if (!uniq.length) return;
+          let csv = 'chart_id,phone\\n' + uniq.map(x => \`\${x.id},\${x.phone}\`).join('\\n');
+          const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+          const url  = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const yymm = new Date().toISOString().slice(0,7);
+          a.href = url; a.download = \`single-injection-phones_\${yymm}.csv\`;
+          document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(url);
+        };
+      })();
 
       const overall = stats.find(s=>s['구분']==='전체');
       if (overall){
@@ -692,7 +626,6 @@ const singleInj = merged.filter(r => r.inj === 1);
         const joined = row.map(x=>String(x||'')).join('');
         if (regex.test(joined)) return i;
       }
-      // 못 찾으면 첫 4행 버리고 시작(기본 서식 보호)
       return Math.min(4, data.length-1);
     }
 
@@ -705,118 +638,92 @@ const singleInj = merged.filter(r => r.inj === 1);
     }
 
     /* ===== 연락처 CSV/XLSX/XLS 읽기 & 열 감지 ===== */
+    function detectChartCol(headers){
+      const keys = ['차트','챠트','id','환자','등록'];
+      for (const h of headers){
+        const s = String(h||'').toLowerCase();
+        if (keys.some(k => s.includes(k))) return h;
+      }
+      return null;
+    }
 
-// 차트번호 열 자동감지
-function detectChartCol(headers){
-  const keys = ['차트','챠트','id','환자','등록'];
-  for (const h of headers){
-    const s = String(h||'').toLowerCase();
-    if (keys.some(k => s.includes(k))) return h;
-  }
-  return null;
-}
+    function detectPhoneCol(headers){
+      const keys = ['전화','연락','휴대','핸드','핸드폰','mobile','phone','tel'];
+      for (const h of headers){
+        const s = String(h||'').toLowerCase();
+        if (keys.some(k => s.includes(k))) return h;
+      }
+      return null;
+    }
 
-// 전화번호 열 자동감지
-function detectPhoneCol(headers){
-  const keys = ['전화','연락','휴대','핸드','핸드폰','mobile','phone','tel'];
-  for (const h of headers){
-    const s = String(h||'').toLowerCase();
-    if (keys.some(k => s.includes(k))) return h;
-  }
-  return null;
-}
+    function normalizeKRPhone(raw){
+      if (!raw) return '';
+      let d = String(raw).replace(/\\D+/g,'');
+      if (/^82/.test(d)) d = '0' + d.slice(2);
+      if (d.length === 11) return d.replace(/(\\d{3})(\\d{4})(\\d{4})/, '$1-$2-$3');
+      if (d.length === 10) return d.replace(/(\\d{2,3})(\\d{3,4})(\\d{4})/, '$1-$2-$3');
+      return d;
+    }
 
-// 한국 전화번호 정규화
-function normalizeKRPhone(raw){
-  if (!raw) return '';
-  let d = String(raw).replace(/\D+/g,'');
-  if (/^82/.test(d)) d = '0' + d.slice(2);
-  if (d.length === 11) return d.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-  if (d.length === 10) return d.replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3');
-  return d;
-}
+    async function readAnyGrid(file){
+      const name = file.name.toLowerCase();
+      const buf = await file.arrayBuffer();
+      const isCSV = name.endsWith('.csv');
+      const wb = isCSV
+        ? XLSX.read(new TextDecoder('utf-8').decode(new Uint8Array(buf)), { type:'string' })
+        : XLSX.read(buf, { type:'array' });
+      const all = [];
+      wb.SheetNames.forEach(s=>{
+        const ws = wb.Sheets[s];
+        const arr = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
+        all.push(...arr);
+      });
+      return all;
+    }
 
-// CSV/XLSX/XLS 모두 2D 배열로 읽기
-async function readAnyGrid(file){
-  const name = file.name.toLowerCase();
-  const buf = await file.arrayBuffer();
-  // csv면 문자열로, 아니면 array
-  const isCSV = name.endsWith('.csv');
-  const wb = isCSV
-    ? XLSX.read(new TextDecoder('utf-8').decode(new Uint8Array(buf)), { type:'string' })
-    : XLSX.read(buf, { type:'array' });
-  const all = [];
-  wb.SheetNames.forEach(s=>{
-    const ws = wb.Sheets[s];
-    const arr = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
-    all.push(...arr);
-  });
-  return all;
-}
+    function findContactHeaderIndex(rows){
+      return rows.findIndex(row=>{
+        const cells = row.map(c => String(c||'').toLowerCase());
+        const hasChart = cells.some(c => /차트|챠트|환자|등록|id/.test(c));
+        const hasPhone = cells.some(c => /전화|연락|휴대|핸드|mobile|phone|tel/.test(c));
+        return hasChart && hasPhone;
+      });
+    }
 
-// 첫 헤더 행 찾기 (차트/전화 키워드 기반)
-function findContactHeaderIndex(rows){
-  return rows.findIndex(row=>{
-    const cells = row.map(c => String(c||'').toLowerCase());
-    const hasChart = cells.some(c => /차트|챠트|환자|등록|id/.test(c));
-    const hasPhone = cells.some(c => /전화|연락|휴대|핸드|mobile|phone|tel/.test(c));
-    return hasChart && hasPhone;
-  });
-}
-
-// 연락처 파일 → { chartId -> phone } 맵 만들기
-function buildPhoneMapFromGrid(rows){
-  const hi = findContactHeaderIndex(rows);
-  if (hi === -1) return {};
-  const headers = rows[hi].map(h => String(h).trim());
-  const body = rows.slice(hi+1).filter(r => r.length>1);
-  const chartCol = detectChartCol(headers);
-  const phoneCol = detectPhoneCol(headers);
-  if (!chartCol || !phoneCol) return {};
-  const map = {};
-  body.forEach(r=>{
-    const obj = Object.fromEntries(headers.map((h,i)=>[h, r[i] ?? '']));
-    const id = String(obj[chartCol] ?? '').trim();
-    let ph = normalizeKRPhone(obj[phoneCol]);
-    const d = ph.replace(/\D+/g,'');
-    if (!id) return;
-    if (d.length>=10 && d.length<=11) map[id]=ph; // 마지막 값으로 덮어쓰기(최근)
-  });
-  return map;
-}
-
+    function buildPhoneMapFromGrid(rows){
+      const hi = findContactHeaderIndex(rows);
+      if (hi === -1) return {};
+      const headers = rows[hi].map(h => String(h).trim());
+      const body = rows.slice(hi+1).filter(r => r.length>1);
+      const chartCol = detectChartCol(headers);
+      const phoneCol = detectPhoneCol(headers);
+      if (!chartCol || !phoneCol) return {};
+      const map = {};
+      body.forEach(r=>{
+        const obj = Object.fromEntries(headers.map((h,i)=>[h, r[i] ?? '']));
+        const id = String(obj[chartCol] ?? '').trim();
+        let ph = normalizeKRPhone(obj[phoneCol]);
+        const d = ph.replace(/\\D+/g,'');
+        if (!id) return;
+        if (d.length>=10 && d.length<=11) map[id]=ph;
+      });
+      return map;
+    }
 
     // 이벤트
-    $('#runBtn').addEventListener('click', processFiles);
-    $('#clearBtn').addEventListener('click', ()=>{
-      $('#clinicFiles').value=''; $('#bFile').value=''; $('#vFile').value='';
+    document.getElementById('runBtn').addEventListener('click', processFiles);
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      $('#clinicFiles').value=''; $('#bFile').value=''; $('#vFile').value=''; $('#contactFile').value='';
       $('#output').innerHTML=''; $('#byAgeOutput').innerHTML='';
       $('#summary').style.display='none'; $('#downloadBtn').disabled=true;
+      $('#exportSingleInjWrap').style.display='none'; $('#exportSingleInjCount').textContent='';
     });
-    $('#toggleCompactBtn').addEventListener('click', ()=>{
+    document.getElementById('toggleCompactBtn').addEventListener('click', ()=>{
       const card = $('#ageCard');
       card.classList.toggle('compact');
       const isCompact = card.classList.contains('compact');
       $('#toggleCompactBtn').textContent = isCompact ? '상세 열 보기' : '컴팩트 보기';
-      // 표는 다음 계산 시 컴팩트/상세가 반영됩니다.
     });
   </script>
-
-
-    <!-- ✅ 인쇄용 함수 (3️⃣) -->
-  <script>
-  function reorderForPrint() {
-    const wrap = document.querySelector('.wrap');
-    const summaryCard = document.querySelector('#summaryOutput')?.closest('.card');
-    const ageCard = document.querySelector('#output')?.closest('.card');
-    if (wrap && summaryCard && ageCard) {
-      wrap.insertBefore(summaryCard, ageCard);
-    }
-    window.print();
-  }
-  </script>
-
-
-  
 </body>
 </html>
