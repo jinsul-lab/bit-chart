@@ -91,58 +91,49 @@
 
     
   
-
-/* ===== JINSUL 공통 로고/워터마크 (자동 주입) ===== */
-:root{
-  --jinsul-toplogo-w: 170px;
-  --jinsul-watermark-opacity: 0.08;  /* 워터마크 진하기 */
-  --jinsul-card-alpha: 0.92;         /* 카드/표 배경 투명도 (1에 가까울수록 불투명) */
+/* ===== JINSUL 공통 스타일(로고/워터마크/표 투명도 통일) ===== */
+header .logo{
+  width:170px;
+  max-width:70vw;
+  height:auto;
+  display:block;
+  margin:0 auto 10px;
+  filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15);
 }
-.jinsul-watermark{
-  position: fixed;
-  inset: 0;
+.wm{
+  position:fixed;
+  inset:0;
   display:flex;
   align-items:center;
   justify-content:center;
   pointer-events:none;
   z-index:0;
 }
-.jinsul-watermark img{
-  width: min(720px, 80vw);
-  opacity: var(--jinsul-watermark-opacity);
-  filter: grayscale(100%);
+.wm img{
+  width:min(760px, 78vw);
+  opacity:.10;
   user-select:none;
+  filter: grayscale(1) saturate(0) brightness(.65) contrast(1.05);
 }
 body > *{ position:relative; z-index:1; }
 
-/* 상단 로고 통일 */
-header .jinsul-toplogo, header .logo{
-  width: var(--jinsul-toplogo-w);
-  height:auto;
-  display:block;
-  margin: 0 auto 10px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.06));
+table{ background: rgba(255,255,255,.50) !important; }
+th{ background: rgba(243,244,246,.70) !important; }
+td{ background: rgba(255,255,255,.50) !important; }
+.table-card, .card, .panel, .result, .results, .output, .box, .section{
+  background: rgba(255,255,255,.50) !important;
 }
 
-/* 워터마크가 숫자를 너무 가리지 않도록, 카드/표 배경을 살짝만 반투명 처리 */
-.card, .panel, .box, .container, .wrap, .content, .section, .result, .output{
-  background-color: rgba(255,255,255,var(--jinsul-card-alpha)) !important;
-}
-table{
-  background-color: rgba(255,255,255,var(--jinsul-card-alpha)) !important;
-}
-thead th, th{
-  background-color: rgba(243,244,246,0.96) !important;
-}
+.wm{ z-index:0 !important; }
+header, .wrap, main, footer{ z-index:1; }
 
 </style>
 </head>
 <body>
-  <div class="jinsul-watermark" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
-  <header>
-    
-    <img src=\"jinsul-logo.png\" alt=\"JINSUL\" class=\"jinsul-toplogo\" />
-<h1>비트 연령별 통계</h1>
+  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
+<header>
+    <img src="jinsul-logo.png" alt="JINSUL" class="logo" />
+    <h1>비트 연령별 통계</h1>
     <p class="sub">진료실별 연령 통계 및 주사·내원 현황</p>
   </header>
 
