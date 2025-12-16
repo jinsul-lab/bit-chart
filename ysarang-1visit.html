@@ -69,10 +69,42 @@
       .table-card { break-inside: avoid; page-break-inside: avoid; }
       table { page-break-inside: auto; }
     }
-  </style>
+  
+/* ===== JINSUL logo + watermark (shared) ===== */
+body{ position:relative; }
+header .logo{
+  width:150px; height:auto; margin:0 auto 10px; display:block;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.06));
+}
+.wm{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none; z-index:0;
+}
+.wm img{
+  width:min(520px, 72vw);
+  opacity:0.10; /* 워터마크 진하기 */
+  filter:grayscale(100%);
+  user-select:none;
+}
+header, .wrap, main, .container, .card, .table-card, .modal-backdrop{ position:relative; z-index:1; }
+
+/* 결과가 나올 때도 워터마크가 살짝 보이도록 배경을 약간 투명하게 */
+.card, table, .modal, .metric{
+  background: rgba(255,255,255,.88) !important;
+}
+th{
+  background: rgba(243,244,246,.92) !important;
+}
+@media print{ .wm{display:none !important;} }
+
+</style>
 </head>
 <body>
+  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt="" /></div>
+
   <header>
+    <img src="jinsul-logo.png" alt="JINSUL Logo" class="logo" />
     <h1>의사랑 연령별 통계</h1>
     <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
   </header>

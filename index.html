@@ -47,9 +47,40 @@
     .btn:hover{transform:translateY(-2px); box-shadow:0 6px 12px rgba(245,158,11,.35)}
     footer{margin-top:40px; text-align:center; color:var(--muted); font-size:12px}
     @media (max-width:720px){ .grid{grid-template-columns:1fr} }
-  </style>
+  
+/* ===== JINSUL logo + watermark (shared) ===== */
+body{ position:relative; }
+header .logo{
+  width:150px; height:auto; margin:0 auto 10px; display:block;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.06));
+}
+.wm{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none; z-index:0;
+}
+.wm img{
+  width:min(520px, 72vw);
+  opacity:0.10; /* 워터마크 진하기 */
+  filter:grayscale(100%);
+  user-select:none;
+}
+header, .wrap, main, .container, .card, .table-card, .modal-backdrop{ position:relative; z-index:1; }
+
+/* 결과가 나올 때도 워터마크가 살짝 보이도록 배경을 약간 투명하게 */
+.card, table, .modal, .metric{
+  background: rgba(255,255,255,.88) !important;
+}
+th{
+  background: rgba(243,244,246,.92) !important;
+}
+@media print{ .wm{display:none !important;} }
+
+</style>
 </head>
 <body>
+  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt="" /></div>
+
   <header>
     <img src="jinsul-logo.png" alt="JINSUL Logo" class="logo" />
     <h1>JINSUL 통계 계산기 선택</h1>
@@ -70,29 +101,6 @@
         <h2>의사랑 통계 계산기</h2>
         <p>진료실 다중 파일 + 주사(b) + 내원(v) 통합 분석, 연령·회차 분포 제공.</p>
         <a class="btn" href="ysarangchart.html">🩺 의사랑 계산기 열기</a>
-      </div>
-    </div>
-
-
-    <div class="section">
-      <h2 style="margin:34px 0 6px; font-size:18px">1회 내원 확인</h2>
-      <p class="sub" style="text-align:left; margin:0 0 12px; color:var(--muted); font-size:14px">
-        업로드한 데이터에서 <b>1회 내원</b> 여부를 빠르게 확인합니다.
-      </p>
-      <div class="grid">
-        <div class="card">
-          <div class="icon">✅</div>
-          <h2>비트 · 1회 내원 확인</h2>
-          <p>비트 양식 데이터로 1회 내원 환자/건을 확인합니다.</p>
-          <a class="btn" href="bit-1visit.html">🔎 비트 1회 내원 열기</a>
-        </div>
-
-        <div class="card">
-          <div class="icon">✅</div>
-          <h2>의사랑 · 1회 내원 확인</h2>
-          <p>의사랑 양식 데이터로 1회 내원 환자/건을 확인합니다.</p>
-          <a class="btn" href="ysarang-1visit.html">🔎 의사랑 1회 내원 열기</a>
-        </div>
       </div>
     </div>
 
