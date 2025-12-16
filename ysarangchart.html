@@ -89,85 +89,10 @@
     }
 
     }
-  
-/* ===== JINSUL 공통 스타일(로고/워터마크/표 투명도 통일) ===== */
-header .logo{
-  width:170px;
-  max-width:70vw;
-  height:auto;
-  display:block;
-  margin:0 auto 10px;
-  filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15);
-}
-.wm{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
-  z-index:0;
-}
-.wm img{
-  width:min(760px, 78vw);
-  opacity:.10;
-  user-select:none;
-  filter: grayscale(1) saturate(0) brightness(.65) contrast(1.05);
-}
-body > *{ position:relative; z-index:1; }
-
-table{ background: rgba(255,255,255,.50) !important; }
-th{ background: rgba(243,244,246,.70) !important; }
-td{ background: rgba(255,255,255,.50) !important; }
-.table-card, .card, .panel, .result, .results, .output, .box, .section{
-  background: rgba(255,255,255,.50) !important;
-}
-
-.wm{ z-index:0 !important; }
-header, .wrap, main, footer{ z-index:1; }
-
-</style>
-
-<style>
-/* ===== JINSUL GLOBAL WATERMARK ===== */
-.watermark{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
-  z-index:0;
-}
-.watermark img{
-  width:520px;
-  opacity:0.14; /* clearly visible */
-  filter:grayscale(100%);
-}
-
-/* content layer */
-header, main, section, .card, .container{
-  position:relative;
-  z-index:1;
-}
-
-/* TABLE: header + body SAME brightness */
-table th,
-table td{
-  background: rgba(255,255,255,0.85) !important;
-}
-</style>
-
+  </style>
 </head>
 <body>
-
-<div class="watermark">
-  <img src="jinsul-logo.png" alt="JINSUL">
-</div>
-
-  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
-<header>
-    <img src="jinsul-logo.png" alt="JINSUL" class="logo" />
+  <header>
     <h1>의사랑 연령별 통계</h1>
     <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
   </header>
@@ -748,10 +673,5 @@ function computeAgeBandStats(merged){
 
 
   
-
-<footer style="text-align:center; font-size:13px; color:#888; margin:40px 0 20px;">
-  © JINSUL · 경험과 가치를 현실화하는 컨설팅
-</footer>
-
 </body>
 </html>

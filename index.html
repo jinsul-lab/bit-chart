@@ -47,156 +47,29 @@
     .btn:hover{transform:translateY(-2px); box-shadow:0 6px 12px rgba(245,158,11,.35)}
     footer{margin-top:40px; text-align:center; color:var(--muted); font-size:12px}
     @media (max-width:720px){ .grid{grid-template-columns:1fr} }
-  
-.sec-title{ margin:14px 4px 10px; font-size:16px; color:var(--text); font-weight:800; letter-spacing:-.2px; }
-.grid-compact{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.card.compact{ min-height: 210px; }
-.icon{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center;
-  background: rgba(31,41,55,.06); color: rgba(31,41,55,.85); margin-bottom:12px; }
-.icon.check{ background: rgba(31,41,55,.06); }
-@media (max-width:720px){ .grid-compact{grid-template-columns:1fr;} }
-
-/* ===== JINSUL 공통 스타일(로고/워터마크/표 투명도 통일) ===== */
-header .logo{
-  width:170px;
-  max-width:70vw;
-  height:auto;
-  display:block;
-  margin:0 auto 10px;
-  filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15);
-}
-.wm{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
-  z-index:0;
-}
-.wm img{
-  width:min(760px, 78vw);
-  opacity:.10;
-  user-select:none;
-  filter: grayscale(1) saturate(0) brightness(.65) contrast(1.05);
-}
-body > *{ position:relative; z-index:1; }
-
-table{ background: rgba(255,255,255,.50) !important; }
-th{ background: rgba(243,244,246,.70) !important; }
-td{ background: rgba(255,255,255,.50) !important; }
-.table-card, .card, .panel, .result, .results, .output, .box, .section{
-  background: rgba(255,255,255,.50) !important;
-}
-
-.wm{ z-index:0 !important; }
-header, .wrap, main, footer{ z-index:1; }
-
-</style>
-
-
-<style>
-/* ===== JINSUL GLOBAL WATERMARK ===== */
-.watermark{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
-  z-index:0;
-}
-.watermark img{
-  width:520px;
-  opacity:0.14; /* clearly visible */
-  filter:grayscale(100%);
-}
-
-/* content layer */
-header, main, section, .card, .container{
-  position:relative;
-  z-index:1;
-}
-
-/* TABLE: header + body SAME brightness */
-table th,
-table td{
-  background: rgba(255,255,255,0.85) !important;
-}
-</style>
-
+  </style>
 </head>
 <body>
-
-<div class="watermark">
-  <img src="jinsul-logo.png" alt="JINSUL">
-</div>
-
-  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
-
   <header>
-    <img src="jinsul-logo.png" alt="JINSUL" class="logo" />
+    <img src="jinsul-logo.png" alt="JINSUL Logo" class="logo" />
     <h1>JINSUL 통계 계산기 선택</h1>
     <p class="sub">경험과 가치를 현실화하는 컨설팅</p>
   </header>
 
   <div class="wrap">
-    <h2 class="sec-title">통계 계산기</h2>
     <div class="grid">
       <div class="card">
-        <div class="icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M4 19H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M8 17V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M12 17V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M16 17V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <h3>비트 통계 계산기</h3>
+        <div class="icon">📊</div>
+        <h2>비트 통계 계산기</h2>
         <p>외래 엑셀/CSV 업로드로 초·재진, 주사, 내원 지표를 자동 계산합니다.</p>
-        <a class="btn" href="bitchart.html">비트 계산기 열기</a>
+        <a class="btn" href="bitchart.html">🚀 비트 계산기 열기</a>
       </div>
 
       <div class="card">
-        <div class="icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M4 19H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M8 17V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M12 17V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M16 17V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M19 6l-3 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <h3>의사랑 통계 계산기</h3>
+        <div class="icon">📊</div>
+        <h2>의사랑 통계 계산기</h2>
         <p>진료실 다중 파일 + 주사(b) + 내원(v) 통합 분석, 연령·회차 분포 제공.</p>
-        <a class="btn" href="ysarangchart.html">의사랑 계산기 열기</a>
-      </div>
-    </div>
-
-    <h2 class="sec-title" style="margin-top:26px;">1회 내원 확인</h2>
-    <div class="grid grid-compact">
-      <div class="card compact">
-        <div class="icon check" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <h3>비트 · 1회 내원 확인</h3>
-        <p>비트 데이터에서 1회 내원(1visit) 대상 확인.</p>
-        <a class="btn" href="bit-1visit.html">비트 1회 내원 열기</a>
-      </div>
-
-      <div class="card compact">
-        <div class="icon check" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <h3>의사랑 · 1회 내원 확인</h3>
-        <p>의사랑 데이터에서 1회 내원(1visit) 대상 확인.</p>
-        <a class="btn" href="ysarang-1visit.html">의사랑 1회 내원 열기</a>
+        <a class="btn" href="ysarangchart.html">🩺 의사랑 계산기 열기</a>
       </div>
     </div>
 
