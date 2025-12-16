@@ -159,8 +159,41 @@ td{
 /* 테이블 안 글자 가독성(살짝) */
 table, th, td{ color: inherit; }
 </style>
+
+<style>
+.watermark{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  z-index:0;
+}
+.watermark img{
+  width:520px;
+  opacity:0.10;
+  filter:grayscale(100%);
+}
+header, main, section, table, .card, .container{
+  position:relative;
+  z-index:1;
+}
+table th{
+  background: rgba(255,255,255,0.95) !important;
+}
+table td{
+  background: rgba(255,255,255,0.90) !important;
+}
+</style>
+
 </head>
 <body>
+
+<div class="watermark">
+  <img src="jinsul-logo.png" alt="JINSUL">
+</div>
+
   <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
 
   <header>
