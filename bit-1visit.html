@@ -111,73 +111,9 @@ td{ background: rgba(255,255,255,.50) !important; }
 header, .wrap, main, footer{ z-index:1; }
 
 </style>
-<style id="jinsul-unify-v3">
-:root{
-  --jinsul-logo-width:170px;
-  --jinsul-wm-opacity:0.075; /* 워터마크 비침(전체 공통) */
-  --jinsul-panel-alpha:0.86; /* 카드/섹션 배경 */
-  --jinsul-th-alpha:0.90;    /* 테이블 헤더 */
-  --jinsul-td-alpha:0.82;    /* 테이블 셀(데이터) */
-}
-
-/* 워터마크(배경) */
-.wm{
-  position:fixed !important;
-  inset:0 !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  pointer-events:none !important;
-  z-index:0 !important;
-}
-.wm img{
-  width:min(760px, 86vw) !important;
-  height:auto !important;
-  opacity:var(--jinsul-wm-opacity) !important;
-  filter:grayscale(1) saturate(0) brightness(.55) contrast(1.15) !important;
-  user-select:none !important;
-}
-
-/* 본문은 워터마크 위로 */
-body > *{ position:relative; z-index:1; }
-
-/* 상단 로고 통일(회색/동일크기) */
-header, .jinsul-topbrand{
-  text-align:center !important;
-}
-header img.logo,
-header .logo,
-.jinsul-topbrand img,
-img[src*="jinsul-logo"]{
-  width:var(--jinsul-logo-width) !important;
-  max-width:70vw !important;
-  height:auto !important;
-  display:block !important;
-  margin:0 auto 10px !important;
-  filter:grayscale(1) saturate(0) brightness(.45) contrast(1.15) !important;
-}
-
-/* 카드/섹션 배경을 너무 투명하게 만들지 않기(표 안에서도 "적당히 비침") */
-.section, .card, .panel, .box, .container, .wrap, main section{
-  background: rgba(255,255,255,var(--jinsul-panel-alpha)) !important;
-}
-
-/* 테이블은 셀 단위로 흰색 반투명(숫자 가독성 확보 + 워터마크 은은) */
-table{
-  background: rgba(255,255,255,var(--jinsul-panel-alpha)) !important;
-}
-th{
-  background: rgba(255,255,255,var(--jinsul-th-alpha)) !important;
-}
-td{
-  background: rgba(255,255,255,var(--jinsul-td-alpha)) !important;
-}
-
-/* 테이블 안 글자 가독성(살짝) */
-table, th, td{ color: inherit; }
-</style>
 
 <style>
+/* ===== JINSUL GLOBAL WATERMARK ===== */
 .watermark{
   position:fixed;
   inset:0;
@@ -189,18 +125,20 @@ table, th, td{ color: inherit; }
 }
 .watermark img{
   width:520px;
-  opacity:0.10;
+  opacity:0.14; /* clearly visible */
   filter:grayscale(100%);
 }
-header, main, section, table, .card, .container{
+
+/* content layer */
+header, main, section, .card, .container{
   position:relative;
   z-index:1;
 }
-table th{
-  background: rgba(255,255,255,0.95) !important;
-}
+
+/* TABLE: header + body SAME brightness */
+table th,
 table td{
-  background: rgba(255,255,255,0.90) !important;
+  background: rgba(255,255,255,0.85) !important;
 }
 </style>
 
@@ -1039,5 +977,10 @@ function showOneshotModal(list, modeLabel){
 
   document.getElementById('modalCloseBtn').addEventListener('click', hideOneshotModal);
 </script>
+
+<footer style="text-align:center; font-size:13px; color:#888; margin:40px 0 20px;">
+  © JINSUL · 경험과 가치를 현실화하는 컨설팅
+</footer>
+
 </body>
 </html>
