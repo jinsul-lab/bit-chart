@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<title>비트 1회 내원 통계</title>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<style>
+  <meta charset="UTF-8" />
+  <title>비트 1회 내원 통계</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
     :root{
       --bg:#f6f6f7; --card:#ffffff; --text:#111827; --muted:#6b7280;
       --border:#e5e7eb; --thead:#f3f4f6; --hover:#f9fafb; --group:#cbd5e1;
@@ -112,70 +111,144 @@ td{ background: rgba(255,255,255,.50) !important; }
 header, .wrap, main, footer{ z-index:1; }
 
 </style>
+<style id="jinsul-unify-v3">
+:root{
+  --jinsul-logo-width:170px;
+  --jinsul-wm-opacity:0.075; /* 워터마크 비침(전체 공통) */
+  --jinsul-panel-alpha:0.86; /* 카드/섹션 배경 */
+  --jinsul-th-alpha:0.90;    /* 테이블 헤더 */
+  --jinsul-td-alpha:0.82;    /* 테이블 셀(데이터) */
+}
+
+/* 워터마크(배경) */
+.wm{
+  position:fixed !important;
+  inset:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  pointer-events:none !important;
+  z-index:0 !important;
+}
+.wm img{
+  width:min(760px, 86vw) !important;
+  height:auto !important;
+  opacity:var(--jinsul-wm-opacity) !important;
+  filter:grayscale(1) saturate(0) brightness(.55) contrast(1.15) !important;
+  user-select:none !important;
+}
+
+/* 본문은 워터마크 위로 */
+body > *{ position:relative; z-index:1; }
+
+/* 상단 로고 통일(회색/동일크기) */
+header, .jinsul-topbrand{
+  text-align:center !important;
+}
+header img.logo,
+header .logo,
+.jinsul-topbrand img,
+img[src*="jinsul-logo"]{
+  width:var(--jinsul-logo-width) !important;
+  max-width:70vw !important;
+  height:auto !important;
+  display:block !important;
+  margin:0 auto 10px !important;
+  filter:grayscale(1) saturate(0) brightness(.45) contrast(1.15) !important;
+}
+
+/* 카드/섹션 배경을 너무 투명하게 만들지 않기(표 안에서도 "적당히 비침") */
+.section, .card, .panel, .box, .container, .wrap, main section{
+  background: rgba(255,255,255,var(--jinsul-panel-alpha)) !important;
+}
+
+/* 테이블은 셀 단위로 흰색 반투명(숫자 가독성 확보 + 워터마크 은은) */
+table{
+  background: rgba(255,255,255,var(--jinsul-panel-alpha)) !important;
+}
+th{
+  background: rgba(255,255,255,var(--jinsul-th-alpha)) !important;
+}
+td{
+  background: rgba(255,255,255,var(--jinsul-td-alpha)) !important;
+}
+
+/* 테이블 안 글자 가독성(살짝) */
+table, th, td{ color: inherit; }
+</style>
 </head>
 <body>
-<div aria-hidden="true" class="wm"><img alt="" src="jinsul-logo.png"/></div>
+  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
 <header>
-<img alt="JINSUL" class="logo" src="jinsul-logo.png">
-<h1>비트 1회 내원 확인 </h1>
-<p class="sub">초진 및 기간 전체 주사 1회 확인</p>
-</header>
-<div class="wrap">
-<div class="card">
-<div class="grid">
-<div>
-<label>외래진료실➡️외래환자➡️기간설정➡️검색➡️Excel내려받기</label>
-<label>※ CSV / XLSX / XLS 모두 지원 (CSV는 UTF-8·EUC-KR 자동 인식)</label>
-<input accept=".csv,.xlsx,.xls" id="fileInput" type="file"/>
-</div>
-<div class="btnrow">
-<button id="pickBtn" onclick="document.getElementById('fileInput').click()">파일 선택</button>
-<button class="secondary" disabled="" id="oneshotBtn">주사 1회자 보기</button>
-<button class="secondary" disabled="" id="oneshotDlBtn">1회자 다운로드</button>
-<button class="secondary" id="printBtn" onclick="window.print()">인쇄</button>
-</div>
-</div>
-<div style="margin-top:10px; display:grid; gap:10px; grid-template-columns: 1fr 1fr auto;">
-<div style="grid-column: 1 / span 2;">
-<label>내원경로 파일(통계➡️내원경로통계➡️집계➡️파일로 내려받기)</label>
-<label>내원경로 파일 업로드</label>
-<input accept=".xls,.xlsx,.csv" id="routeFileInput" type="file"/>
-</div>
-<div class="btnrow" style="justify-content:flex-end">
-<button class="secondary" disabled="" id="routeStatusBtn">내원경로: 미업로드</button>
-</div>
-</div>
-<p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 데이터는 브라우저 내에서만 처리됩니다.</p>
-</div>
-<div class="card table-card" style="display:none">
-<h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
-<div id="summaryOutput"></div>
-</div>
-<div class="card table-card" style="display:none">
-<h3 class="card-title">연령대별 통계 (진료실별)</h3>
-<div id="output"></div>
-<div class="warn" id="warning"></div>
-</div>
-<div class="card table-card" id="oneshotModal" style="display:none">
-<div class="modal-header">
-<div>
-<div class="modal-title">주사 1회자 목록</div>
-<div class="pill">기준: 기간 내 “마취(주사) 칸에 ●”가 정확히 1번인 차트</div>
-</div>
-<div class="modal-actions">
-<button class="secondary" id="modeAllBtn">전체 1회</button>
-<button class="secondary" id="modeNewBtn">신환 1회</button>
-<button class="secondary" id="modalDlBtn">다운로드(xlsx)</button>
-<button class="secondary" id="modalCloseBtn">닫기</button>
-</div>
-</div>
-<div class="modal-body">
-<div id="oneshotMeta" style="margin-bottom:10px;color:var(--muted);font-size:12px"></div>
-<div id="oneshotTable"></div>
-</div>
-</div>
-</div>
-<script>
+    <img src="jinsul-logo.png" alt="JINSUL" class="logo" />
+    <h1>비트 1회 내원 확인 </h1>
+    <p class="sub">초진 및 기간 전체 주사 1회 확인</p>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>외래진료실➡️외래환자➡️기간설정➡️검색➡️Excel내려받기</label>
+          <label>※ CSV / XLSX / XLS 모두 지원 (CSV는 UTF-8·EUC-KR 자동 인식)</label>
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+        </div>
+        <div class="btnrow">
+          <button id="pickBtn" onclick="document.getElementById('fileInput').click()">파일 선택</button>
+          <button id="oneshotBtn" class="secondary" disabled>주사 1회자 보기</button>
+          <button id="oneshotDlBtn" class="secondary" disabled>1회자 다운로드</button>
+          <button id="printBtn" class="secondary" onclick="window.print()">인쇄</button>
+        </div>
+      </div>
+
+      <div style="margin-top:10px; display:grid; gap:10px; grid-template-columns: 1fr 1fr auto;">
+        <div style="grid-column: 1 / span 2;">
+          <label>내원경로 파일(통계➡️내원경로통계➡️집계➡️파일로 내려받기)</label>
+          <label>내원경로 파일 업로드</label>
+          <input type="file" id="routeFileInput" accept=".xls,.xlsx,.csv" />
+        </div>
+        <div class="btnrow" style="justify-content:flex-end">
+          <button id="routeStatusBtn" class="secondary" disabled>내원경로: 미업로드</button>
+        </div>
+      </div>
+
+      <p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 데이터는 브라우저 내에서만 처리됩니다.</p>
+    </div>
+
+    <div class="card table-card" style="display:none">
+      <h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
+      <div id="summaryOutput"></div>
+    </div>
+
+    <div class="card table-card" style="display:none">
+      <h3 class="card-title">연령대별 통계 (진료실별)</h3>
+      <div id="output"></div>
+      <div id="warning" class="warn"></div>
+    </div>
+
+    <div id="oneshotModal" class="card table-card" style="display:none">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">주사 1회자 목록</div>
+          <div class="pill">기준: 기간 내 “마취(주사) 칸에 ●”가 정확히 1번인 차트</div>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary" id="modeAllBtn">전체 1회</button>
+          <button class="secondary" id="modeNewBtn">신환 1회</button>
+          <button class="secondary" id="modalDlBtn">다운로드(xlsx)</button>
+          <button class="secondary" id="modalCloseBtn">닫기</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="oneshotMeta" style="margin-bottom:10px;color:var(--muted);font-size:12px"></div>
+        <div id="oneshotTable"></div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <script>
   /* ================= 공통 유틸 ================= */
   const AGE_ORDER = ["0~10대","20대","30대","40대","50대","60대","70대이상","전체"];
   const state = { df:null, col:null, oneshotRows:[], oneshotNewRows:[], oneshotMode:'all', routeMap:null };
