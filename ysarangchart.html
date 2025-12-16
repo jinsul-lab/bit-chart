@@ -1,12 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>의사랑 연령별 통계</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- xlsx: xls/xlsx 모두 지원 가능한 0.18.5 사용 -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
+<meta charset="utf-8"/>
+<title>의사랑 연령별 통계</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<!-- xlsx: xls/xlsx 모두 지원 가능한 0.18.5 사용 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
     :root{
       --bg:#f6f6f7; --card:#ffffff; --text:#111827; --muted:#6b7280;
       --border:#e5e7eb; --thead:#f3f4f6; --hover:#f9fafb; --group:#cbd5e1;
@@ -129,75 +130,65 @@ header, .wrap, main, footer{ z-index:1; }
 </style>
 </head>
 <body>
-  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
+<div aria-hidden="true" class="wm"><img alt="" src="jinsul-logo.png"/></div>
 <header>
-    <img src="jinsul-logo.png" alt="JINSUL" class="logo" />
-    <h1>의사랑 연령별 통계</h1>
-    <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
-  </header>
-
-  <div class="wrap">
-    <div class="card"> 
-
-
+<img alt="JINSUL" class="logo" src="jinsul-logo.png">
+<h1>의사랑 연령별 통계</h1>
+<p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
+</header>
+<div class="wrap">
+<div class="card">
 <div class="card no-print">
-  <div class="grid">
-    <!-- 키워드 입력 / 파일 input / 파일 선택 버튼 -->
-  </div>
-
-      
-      <div class="grid">
-        <div>
-          <label>초진 파일(진료실별 또는 담당의별)</label>
-          <label>진료실별 또는 담당의별로 초진 파일을 받아주세요</label>
-          <label>🚫진료실이 여러개면 꼭! 진료실별 초진 파일 받아주세요🚫</label>
-          <input type="file" id="clinicFiles" multiple accept=".xlsx,.xls" />
-        </div>
-        <div>
-          <label>주사 파일</label>
-          <label>리도카인, 엠카인 등 병원에서 쓰는 마취제 받아주세요</label>
-          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>     
-          <input type="file" id="bFile" accept=".xlsx,.xls" />
-        </div>
-        <div>
-          <label>총 환자(초진+재진)</label>
-          <label>초진, 재진 진찰료 파일 각각 받아서 1개로 합쳐도 됩니다❗</label>
-          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
-          <input type="file" id="vFile" accept=".xlsx,.xls" />
-        </div>
-        <div class="right">
-          <button id="runBtn">통계 계산</button>
-
-        </div>
-      </div>
-      <div class="right" style="margin-top:8px">
-        <button id="toggleCompactBtn" title="표를 한 페이지로 보기">컴팩트 보기</button>
-        <button id="downloadBtn" disabled>결과 다운로드(.xlsx)</button>
-        <button id="clearBtn">초기화</button>
-      </div>
-      <p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 파일은 브라우저 내에서만 처리됩니다.</p>
-    </div>
-
-    <!-- 상단 요약 지표 -->
-    <div class="summary" id="summary" style="display:none">
-      <div class="metric"><h3>전체 초진환자수</h3><p id="m-total">-</p></div>
-      <div class="metric"><h3>초진 주사처방률</h3><p id="m-inj-rate">-</p></div>
-      <div class="metric"><h3>초진 평균 내원횟수</h3><p id="m-visit-avg">-</p></div>
-      <div class="metric"><h3>재내원율(2회 이상)</h3><p id="m-revisit">-</p></div>
-    </div>
-
-    <div class="card table-card">
-      <h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
-      <div id="output"></div>
-    </div>
-
-    <div class="card table-card" id="ageCard">
-      <h3 class="card-title">연령대별 통계 (진료실별)</h3>
-      <div id="byAgeOutput"></div>
-    </div>
-  </div>
-
-  <script>
+<div class="grid">
+<!-- 키워드 입력 / 파일 input / 파일 선택 버튼 -->
+</div>
+<div class="grid">
+<div>
+<label>초진 파일(진료실별 또는 담당의별)</label>
+<label>진료실별 또는 담당의별로 초진 파일을 받아주세요</label>
+<label>🚫진료실이 여러개면 꼭! 진료실별 초진 파일 받아주세요🚫</label>
+<input accept=".xlsx,.xls" id="clinicFiles" multiple="" type="file"/>
+</div>
+<div>
+<label>주사 파일</label>
+<label>리도카인, 엠카인 등 병원에서 쓰는 마취제 받아주세요</label>
+<label>❤️진료실별로 받지 않아도 됩니다❤️</label>
+<input accept=".xlsx,.xls" id="bFile" type="file"/>
+</div>
+<div>
+<label>총 환자(초진+재진)</label>
+<label>초진, 재진 진찰료 파일 각각 받아서 1개로 합쳐도 됩니다❗</label>
+<label>❤️진료실별로 받지 않아도 됩니다❤️</label>
+<input accept=".xlsx,.xls" id="vFile" type="file"/>
+</div>
+<div class="right">
+<button id="runBtn">통계 계산</button>
+</div>
+</div>
+<div class="right" style="margin-top:8px">
+<button id="toggleCompactBtn" title="표를 한 페이지로 보기">컴팩트 보기</button>
+<button disabled="" id="downloadBtn">결과 다운로드(.xlsx)</button>
+<button id="clearBtn">초기화</button>
+</div>
+<p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 파일은 브라우저 내에서만 처리됩니다.</p>
+</div>
+<!-- 상단 요약 지표 -->
+<div class="summary" id="summary" style="display:none">
+<div class="metric"><h3>전체 초진환자수</h3><p id="m-total">-</p></div>
+<div class="metric"><h3>초진 주사처방률</h3><p id="m-inj-rate">-</p></div>
+<div class="metric"><h3>초진 평균 내원횟수</h3><p id="m-visit-avg">-</p></div>
+<div class="metric"><h3>재내원율(2회 이상)</h3><p id="m-revisit">-</p></div>
+</div>
+<div class="card table-card">
+<h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
+<div id="output"></div>
+</div>
+<div class="card table-card" id="ageCard">
+<h3 class="card-title">연령대별 통계 (진료실별)</h3>
+<div id="byAgeOutput"></div>
+</div>
+</div>
+<script>
     const $ = (sel) => document.querySelector(sel);
 
     /* ===== 유틸 ===== */
@@ -695,10 +686,8 @@ function computeAgeBandStats(merged){
       // 표는 다음 계산 시 컴팩트/상세가 반영됩니다.
     });
   </script>
-
-
-    <!-- ✅ 인쇄용 함수 (3️⃣) -->
-  <script>
+<!-- ✅ 인쇄용 함수 (3️⃣) -->
+<script>
   function reorderForPrint() {
     const wrap = document.querySelector('.wrap');
     const summaryCard = document.querySelector('#summaryOutput')?.closest('.card');
@@ -709,8 +698,5 @@ function computeAgeBandStats(merged){
     window.print();
   }
   </script>
-
-
-  
-</body>
+</div></body>
 </html>

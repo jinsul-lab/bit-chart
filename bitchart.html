@@ -1,13 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>비트 연령별 통계</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- SheetJS (CSV/XLSX/XLS 모두 처리) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-  <style>
+<meta charset="utf-8"/>
+<title>비트 연령별 통계</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<!-- SheetJS (CSV/XLSX/XLS 모두 처리) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
     :root{
       --bg:#f6f6f7; --card:#ffffff; --text:#111827; --muted:#6b7280;
       --border:#e5e7eb; --thead:#f3f4f6; --hover:#f9fafb; --group:#cbd5e1;
@@ -130,59 +130,46 @@ header, .wrap, main, footer{ z-index:1; }
 </style>
 </head>
 <body>
-  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
+<div aria-hidden="true" class="wm"><img alt="" src="jinsul-logo.png"/></div>
 <header>
-    <img src="jinsul-logo.png" alt="JINSUL" class="logo" />
-    <h1>비트 연령별 통계</h1>
-    <p class="sub">진료실별 연령 통계 및 주사·내원 현황</p>
-  </header>
-
-  <div class="wrap">
-    <div class="card">
-
-
-
+<img alt="JINSUL" class="logo" src="jinsul-logo.png">
+<h1>비트 연령별 통계</h1>
+<p class="sub">진료실별 연령 통계 및 주사·내원 현황</p>
+</header>
+<div class="wrap">
+<div class="card">
 <div class="card no-print">
-  <div class="grid">
-    <!-- 키워드 입력 / 파일 input / 파일 선택 버튼 -->
-  </div>
-
-
-
-
-      
-      <div class="grid">
-        <div>
-          <label>접수메모에 적힌 키워드 특정 값을 원할 때 입력</label>
-          <label>PT만, 충격파, 주사경과, 1진료실, 독감, 드레싱 등 특정 키워드</label>
-          <input type="text" id="keywordInput" placeholder="예: PT만" />
-        </div>
-        <div>
-          <label>외래진료실➡️외래환자➡️기간설정➡️검색➡️Excel내려받기</label>
-          <label>※ CSV / XLSX / XLS 모두 지원 (CSV는 UTF-8·EUC-KR 자동 인식)</label>
-          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
-        </div>
-        <div style="display:flex;align-items:end;justify-content:flex-end;">
-          
-          <button id="runBtn" onclick="document.getElementById('fileInput').click()">파일 선택</button>
-        </div>
-      </div>
-      <p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 데이터는 브라우저 내에서만 처리됩니다.</p>
-    </div>
-
-    <div class="card table-card">
-      <h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
-      <div id="summaryOutput"></div>
-    </div>
-
-    <div class="card table-card">
-      <h3 class="card-title">연령대별 통계 (진료실별)</h3>
-      <div id="output"></div>
-      <div id="warning" class="warn"></div>
-    </div>
-  </div>
-
-  <script>
+<div class="grid">
+<!-- 키워드 입력 / 파일 input / 파일 선택 버튼 -->
+</div>
+<div class="grid">
+<div>
+<label>접수메모에 적힌 키워드 특정 값을 원할 때 입력</label>
+<label>PT만, 충격파, 주사경과, 1진료실, 독감, 드레싱 등 특정 키워드</label>
+<input id="keywordInput" placeholder="예: PT만" type="text"/>
+</div>
+<div>
+<label>외래진료실➡️외래환자➡️기간설정➡️검색➡️Excel내려받기</label>
+<label>※ CSV / XLSX / XLS 모두 지원 (CSV는 UTF-8·EUC-KR 자동 인식)</label>
+<input accept=".csv,.xlsx,.xls" id="fileInput" type="file"/>
+</div>
+<div style="display:flex;align-items:end;justify-content:flex-end;">
+<button id="runBtn" onclick="document.getElementById('fileInput').click()">파일 선택</button>
+</div>
+</div>
+<p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 데이터는 브라우저 내에서만 처리됩니다.</p>
+</div>
+<div class="card table-card">
+<h3 class="card-title">요약 통계 (전체 / 각 진료실)</h3>
+<div id="summaryOutput"></div>
+</div>
+<div class="card table-card">
+<h3 class="card-title">연령대별 통계 (진료실별)</h3>
+<div id="output"></div>
+<div class="warn" id="warning"></div>
+</div>
+</div>
+<script>
     /* ================= 공통 유틸 ================= */
     const AGE_ORDER = ["0~10대", "20대", "30대", "40대", "50대", "60대", "70대이상", "전체"];
 
@@ -605,10 +592,8 @@ const 진료과들 = [...new Set(
       renderAgeTable(result);
     }
   </script>
-
-
-    <!-- ✅ 인쇄용 함수 (3️⃣) -->
-  <script>
+<!-- ✅ 인쇄용 함수 (3️⃣) -->
+<script>
   function reorderForPrint() {
     const wrap = document.querySelector('.wrap');
     const summaryCard = document.querySelector('#summaryOutput')?.closest('.card');
@@ -620,8 +605,5 @@ const 진료과들 = [...new Set(
     window.print();
   }
   </script>
-
-
-  
-</body>
+</div></body>
 </html>
