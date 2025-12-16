@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>비트 연령별 통계</title>
+  <title>비트 1회 내원 통계</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -77,8 +77,8 @@
 </head>
 <body>
   <header>
-    <h1>비트 연령별 통계 자동 계산기</h1>
-    <p class="sub">진료실별 연령 통계 및 주사·내원 현황 자동 계산 + “주사 1회” 연락처 추출</p>
+    <h1>비트 1회 내원 확인 </h1>
+    <p class="sub">초진 및 기간 전체 주사 1회 확인</p>
   </header>
 
   <div class="wrap">
@@ -99,7 +99,7 @@
 
       <div style="margin-top:10px; display:grid; gap:10px; grid-template-columns: 1fr 1fr auto;">
         <div style="grid-column: 1 / span 2;">
-          <label>내원경로 파일(통계 → 내원경로통계 → 집계 → 파일로 내려받기)</label>
+          <label>내원경로 파일(통계➡️내원경로통계➡️집계➡️파일로 내려받기)</label>
           <label>내원경로 파일 업로드</label>
           <input type="file" id="routeFileInput" accept=".xls,.xlsx,.csv" />
         </div>
