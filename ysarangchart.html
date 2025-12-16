@@ -90,25 +90,55 @@
 
     }
   
-    /* --- JINSUL watermark + header logo (auto-added) --- */
-    .logo{width:150px; max-width:55vw; height:auto; display:block; margin:0 auto 10px;}
-    body{position:relative;}
-    .wm{position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-         pointer-events:none; z-index:0;}
-    .wm img{width:min(560px, 72vw); height:auto; opacity:0.1;
-            user-select:none; -webkit-user-drag:none; filter:grayscale(100%);}
-    body > header, body > .wrap, body > footer, body > main{position:relative; z-index:1;}
-    /* Make result panels slightly translucent so watermark is still visible */
-    .card{background:rgba(255,255,255,0.86) !important;}
-    table{background:rgba(255,255,255,0.9) !important;}
-    
-  </style>
+/* ===== JINSUL 공통: 상단 로고 + 중앙 워터마크 (통일 버전) ===== */
+:root{
+  --jinsul-watermark-opacity: 0.10;
+  --jinsul-card-alpha: 0.90; /* 카드/표 배경 투명도(워터마크 보이게) */
+}
+body{position:relative;}
+/* 상단 브랜드 */
+header{ text-align:center; }
+header .brand{display:flex; flex-direction:column; align-items:center; gap:8px; margin:0 auto 10px;}
+header .logo{width:min(200px, 55vw); height:auto; display:block;}
+header .brand-tagline{font-size:14px; color:var(--muted, #6b7280);}
+/* 중앙 워터마크 */
+.wm{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none; z-index:0;
+}
+.wm img{
+  width:min(900px, 92vw);
+  height:auto;
+  opacity:var(--jinsul-watermark-opacity);
+  filter:grayscale(100%);
+  user-select:none;
+}
+/* 실제 콘텐츠는 워터마크 위로 */
+header, main, .wrap, .container, .content, footer{position:relative; z-index:1;}
+
+/* 카드/테이블 배경을 살짝 투명하게(기존 디자인 유지) */
+.card, .panel, .box, .wrap .card, .container .card{
+  background: rgba(255,255,255,var(--jinsul-card-alpha)) !important;
+  backdrop-filter: saturate(1.05);
+}
+table, thead, tbody, tfoot{background: transparent;}
+th{
+  background: rgba(243,244,246,0.85) !important;
+}
+
+header{padding:28px 16px 10px;}
+</style>
 </head>
 <body>
   <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt="" /></div>
+
   <header>
-    <img src="jinsul-logo.png" alt="JINSUL Logo" class="logo" />
-    <h1>의사랑 연령별 통계</h1>
+    <div class="brand">
+      <img class="logo" src="jinsul-logo.png" alt="JINSUL 로고" />
+      <div class="brand-tagline">경험과 가치를 현실화 하는 컨설팅</div>
+    </div>
+<h1>의사랑 연령별 통계</h1>
     <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
   </header>
 
