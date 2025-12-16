@@ -70,54 +70,57 @@
       table { page-break-inside: auto; }
     }
   
-/* ===== JINSUL 공통: 상단 로고 + 중앙 워터마크 (통일 버전) ===== */
+
+/* ===== JINSUL 공통 로고/워터마크 (자동 주입) ===== */
 :root{
-  --jinsul-watermark-opacity: 0.10;
-  --jinsul-card-alpha: 0.90; /* 카드/표 배경 투명도(워터마크 보이게) */
+  --jinsul-toplogo-w: 170px;
+  --jinsul-watermark-opacity: 0.08;  /* 워터마크 진하기 */
+  --jinsul-card-alpha: 0.92;         /* 카드/표 배경 투명도 (1에 가까울수록 불투명) */
 }
-body{position:relative;}
-/* 상단 브랜드 */
-header{ text-align:center; }
-header .brand{display:flex; flex-direction:column; align-items:center; gap:8px; margin:0 auto 10px;}
-header .logo{width:min(200px, 55vw); height:auto; display:block;}
-header .brand-tagline{font-size:14px; color:var(--muted, #6b7280);}
-/* 중앙 워터마크 */
-.wm{
-  position:fixed; inset:0;
-  display:flex; align-items:center; justify-content:center;
-  pointer-events:none; z-index:0;
+.jinsul-watermark{
+  position: fixed;
+  inset: 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  z-index:0;
 }
-.wm img{
-  width:min(900px, 92vw);
-  height:auto;
-  opacity:var(--jinsul-watermark-opacity);
-  filter:grayscale(100%);
+.jinsul-watermark img{
+  width: min(720px, 80vw);
+  opacity: var(--jinsul-watermark-opacity);
+  filter: grayscale(100%);
   user-select:none;
 }
-/* 실제 콘텐츠는 워터마크 위로 */
-header, main, .wrap, .container, .content, footer{position:relative; z-index:1;}
+body > *{ position:relative; z-index:1; }
 
-/* 카드/테이블 배경을 살짝 투명하게(기존 디자인 유지) */
-.card, .panel, .box, .wrap .card, .container .card{
-  background: rgba(255,255,255,var(--jinsul-card-alpha)) !important;
-  backdrop-filter: saturate(1.05);
-}
-table, thead, tbody, tfoot{background: transparent;}
-th{
-  background: rgba(243,244,246,0.85) !important;
+/* 상단 로고 통일 */
+header .jinsul-toplogo, header .logo{
+  width: var(--jinsul-toplogo-w);
+  height:auto;
+  display:block;
+  margin: 0 auto 10px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.06));
 }
 
-header{padding:28px 16px 10px;}
+/* 워터마크가 숫자를 너무 가리지 않도록, 카드/표 배경을 살짝만 반투명 처리 */
+.card, .panel, .box, .container, .wrap, .content, .section, .result, .output{
+  background-color: rgba(255,255,255,var(--jinsul-card-alpha)) !important;
+}
+table{
+  background-color: rgba(255,255,255,var(--jinsul-card-alpha)) !important;
+}
+thead th, th{
+  background-color: rgba(243,244,246,0.96) !important;
+}
+
 </style>
 </head>
 <body>
-  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt="" /></div>
-
+  <div class="jinsul-watermark" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
   <header>
-    <div class="brand">
-      <img class="logo" src="jinsul-logo.png" alt="JINSUL 로고" />
-      <div class="brand-tagline">경험과 가치를 현실화 하는 컨설팅</div>
-    </div>
+    
+    <img src=\"jinsul-logo.png\" alt=\"JINSUL\" class=\"jinsul-toplogo\" />
 <h1>의사랑 연령별 통계</h1>
     <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
   </header>
