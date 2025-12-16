@@ -74,8 +74,35 @@
   input[type="text"]{background:#fff}
 
 </style>
+
+<style>
+/* ===== JINSUL WATERMARK (SINGLE / SMALL) ===== */
+.watermark{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  z-index:0;
+}
+.watermark img{
+  width:360px;   /* SMALL version */
+  opacity:0.10;
+}
+header, main, section, .card, .container{
+  position:relative;
+  z-index:1;
+}
+</style>
+
 </head>
 <body>
+
+<div class="watermark">
+  <img src="jinsul-logo.png" alt="JINSUL">
+</div>
+
   <header>
     <h1>비트 1회 내원 확인 </h1>
     <p class="sub">초진 및 기간 전체 주사 1회 확인</p>

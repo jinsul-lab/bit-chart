@@ -48,8 +48,35 @@
     footer{margin-top:40px; text-align:center; color:var(--muted); font-size:12px}
     @media (max-width:720px){ .grid{grid-template-columns:1fr} }
   </style>
+
+<style>
+/* ===== JINSUL WATERMARK (SINGLE / SMALL) ===== */
+.watermark{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  z-index:0;
+}
+.watermark img{
+  width:360px;   /* SMALL version */
+  opacity:0.10;
+}
+header, main, section, .card, .container{
+  position:relative;
+  z-index:1;
+}
+</style>
+
 </head>
 <body>
+
+<div class="watermark">
+  <img src="jinsul-logo.png" alt="JINSUL">
+</div>
+
   <header>
     <img src="jinsul-logo.png" alt="JINSUL Logo" class="logo" />
     <h1>JINSUL 통계 계산기 선택</h1>

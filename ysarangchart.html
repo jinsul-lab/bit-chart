@@ -90,8 +90,35 @@
 
     }
   </style>
+
+<style>
+/* ===== JINSUL WATERMARK (SINGLE / SMALL) ===== */
+.watermark{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  z-index:0;
+}
+.watermark img{
+  width:360px;   /* SMALL version */
+  opacity:0.10;
+}
+header, main, section, .card, .container{
+  position:relative;
+  z-index:1;
+}
+</style>
+
 </head>
 <body>
+
+<div class="watermark">
+  <img src="jinsul-logo.png" alt="JINSUL">
+</div>
+
   <header>
     <h1>의사랑 연령별 통계</h1>
     <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
