@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>JINSUL · 통계 계산기 선택</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      /* JINSUL 브랜드 팔레트 */
+      --bg:#fffdf6;         /* 따뜻한 아이보리 */
+      --text:#1f2937;       /* 진회색 본문 */
+      --muted:#6b7280;      /* 설명 텍스트 */
+      --card:#ffffff;       /* 카드 배경 */
+      --border:#e6e2d8;     /* 아이보리 계열 보더 */
+      --accent1:#f59e0b;    /* 로고 옐로우 */
+      --accent2:#fbbf24;    /* 옐로우 그라데이션 보조 */
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif; color:var(--text); background:var(--bg);}
+    header{padding:36px 16px 0; text-align:center}
+    .logo{width:150px; height:auto; margin-bottom:10px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.06));}
+    h1{margin:10px 0 8px; font-size:26px}
+    p.sub{margin:0; color:var(--muted); font-size:14px}
+    .wrap{max-width:980px; margin:0 auto; padding:22px 16px 56px}
+    .grid{display:grid; gap:20px; grid-template-columns:repeat(2,1fr); margin-top:24px}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:22px;
+      box-shadow:0 6px 14px rgba(245,158,11,.06), 0 2px 6px rgba(0,0,0,.02);
+      transition:transform .18s ease, box-shadow .18s ease;
+    }
+    .card:hover{transform:translateY(-4px); box-shadow:0 10px 20px rgba(245,158,11,.12)}
+    .icon{font-size:40px; margin-bottom:10px}
+    .card h2{margin:0 0 8px; font-size:18px}
+    .card p{margin:0 0 18px; color:var(--muted); font-size:14px}
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:11px 16px; border-radius:10px; border:none; cursor:pointer;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      color:#3a2b00; /* 옐로우 위에서 읽기 좋은 브라운 톤 */
+      font-weight:700; font-size:14px; text-decoration:none;
+      box-shadow:0 3px 8px rgba(245,158,11,.25);
+      transition:transform .18s ease, box-shadow .18s ease;
+    }
+    .btn:hover{transform:translateY(-2px); box-shadow:0 6px 12px rgba(245,158,11,.35)}
+    footer{margin-top:40px; text-align:center; color:var(--muted); font-size:12px}
+    @media (max-width:720px){ .grid{grid-template-columns:1fr} }
+  
+    /* 중앙 워터마크 로고 */
+    .wm{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      z-index:0;
+    }
+    .wm img{
+      width:min(520px, 70vw);
+      opacity:0.08; /* 진하게 하고 싶으면 0.12~0.18 */
+      filter:grayscale(100%);
+      user-select:none;
+    }
+    /* 내용은 워터마크 위로 */
+    header, .wrap{position:relative; z-index:1;}
+
+  </style>
+</head>
+<body>
+  <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt="" /></div>
+  <header>
+    <img src="jinsul-logo.png" alt="JINSUL Logo" class="logo" />
+    <h1>JINSUL 통계 계산기 선택</h1>
+    <p class="sub">경험과 가치를 현실화하는 컨설팅</p>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <div class="card">
+        <div class="icon">📊</div>
+        <h2>비트 통계 계산기</h2>
+        <p>외래 엑셀/CSV 업로드로 초·재진, 주사, 내원 지표를 자동 계산합니다.</p>
+        <a class="btn" href="bitchart.html">🚀 비트 계산기 열기</a>
+      </div>
+
+      <div class="card">
+        <div class="icon">📊</div>
+        <h2>의사랑 통계 계산기</h2>
+        <p>진료실 다중 파일 + 주사(b) + 내원(v) 통합 분석, 연령·회차 분포 제공.</p>
+        <a class="btn" href="ysarangchart.html">🩺 의사랑 계산기 열기</a>
+      </div>
+    </div>
+
+
+    <div class="section">
+      <h2 style="margin:34px 0 6px; font-size:18px">1회 내원 확인</h2>
+      <p class="sub" style="text-align:left; margin:0 0 12px; color:var(--muted); font-size:14px">
+        업로드한 데이터에서 <b>1회 내원</b> 여부를 빠르게 확인합니다.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <div class="icon">✅</div>
+          <h2>비트 · 1회 내원 확인</h2>
+          <p>비트 양식 데이터로 1회 내원 환자/건을 확인합니다.</p>
+          <a class="btn" href="bit-1visit.html">🔎 비트 1회 내원 열기</a>
+        </div>
+
+        <div class="card">
+          <div class="icon">✅</div>
+          <h2>의사랑 · 1회 내원 확인</h2>
+          <p>의사랑 양식 데이터로 1회 내원 환자/건을 확인합니다.</p>
+          <a class="btn" href="ysarang-1visit.html">🔎 의사랑 1회 내원 열기</a>
+        </div>
+      </div>
+    </div>
+
+    <footer>© JINSUL · 경험과 가치를 현실화하는 컨설팅</footer>
+  </div>
+</body>
+</html>
