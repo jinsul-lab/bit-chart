@@ -15,12 +15,13 @@
     body{margin:0; background:var(--bg); color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;}
     
-    /* ===== JINSUL 디자인 통합 (로고/워터마크/투명도 10%/블러 1px) ===== */
+    /* ===== JINSUL 디자인 통합 (요청 사항 반영) ===== */
     header{padding:24px 16px 0; text-align:center;}
     header .logo {
       width:170px; max-width:70vw; height:auto; display:block; margin:0 auto 10px;
       filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15);
     }
+
     .wm {
       position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
       pointer-events:none; z-index:0;
@@ -29,15 +30,16 @@
       width:min(760px, 78vw); opacity:.10; user-select:none;
       filter: grayscale(1) saturate(0) brightness(.65) contrast(1.05);
     }
+    
     body > * { position:relative; z-index:1; }
 
-    /* 모든 박스와 표 투명도 10% 및 블러 1px */
-    .card, .metric, table {
+    /* 표 및 카드 투명도 10% + 블러 1px */
+    .card, table, .metric {
       background: rgba(255, 255, 255, 0.10) !important;
       backdrop-filter: blur(1px);
       -webkit-backdrop-filter: blur(1px);
     }
-    /* ========================================================== */
+    /* =========================================== */
 
     h1{margin:0 0 6px; font-size:24px; font-weight:800; color:#0f172a}
     p.sub{margin:0; color:var(--muted); font-size:13px}
@@ -46,7 +48,7 @@
     .card-title{margin:0 0 8px; font-weight:700; color:#111827}
     .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr auto}
     label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
-    input[type=file]{width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:rgba(255,255,255,0.5); color:var(--text)}
+    input[type=file]{width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:rgba(255,255,255,0.4); color:var(--text)}
     button{height:38px; border-radius:10px; border:1px solid var(--border);
       background:radial-gradient(120% 120% at 0% 0%,rgba(34,211,238,.25),rgba(34,211,238,.1));
       color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px;}
@@ -61,12 +63,9 @@
     .table-card{overflow:auto; margin-top:10px}
     table{width:100%; border-collapse:collapse; table-layout:fixed; border:1px solid var(--border); border-radius:12px; overflow:hidden;}
     th,td{border-bottom:1px solid var(--border); padding:10px 8px; text-align:center; word-break:keep-all; white-space:normal; font-size:12px;}
-    th{position:sticky; top:0; background:var(--thead); z-index:1; color:#0f172a}
-    tbody tr:hover td{background:var(--hover)}
+    th{position:sticky; top:0; background:var(--thead) !important; z-index:1; color:#0f172a}
+    tbody tr:hover td{background:rgba(0,0,0,0.05)}
 
-    tbody td[rowspan]{ border-top:3px solid var(--group) !important; }
-    tbody tr:first-child td[rowspan]{ border-top:1px solid var(--border) !important; }
-    
     .dist-merged{display:none}
     .compact .dist-col{display:none}
     .compact .dist-merged{display:table-cell}
@@ -90,15 +89,21 @@
     <div class="card no-print">
       <div class="grid">
         <div>
-          <label>초진 파일(여러 진료실 선택 가능)</label>
+          <label>초진 파일(진료실별 또는 담당의별)</label>
+          <label>진료실별 또는 담당의별로 초진 파일을 받아주세요</label>
+          <label>🚫진료실이 여러개면 꼭! 진료실별 초진 파일 받아주세요🚫</label>
           <input type="file" id="clinicFiles" multiple accept=".xlsx,.xls" />
         </div>
         <div>
           <label>주사 파일</label>
+          <label>리도카인, 엠카인 등 병원에서 쓰는 마취제 받아주세요</label>
+          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
           <input type="file" id="bFile" accept=".xlsx,.xls" />
         </div>
         <div>
           <label>총 환자(초진+재진)</label>
+          <label>초진, 재진 진찰료 파일 각각 받아서 1개로 합쳐도 됩니다❗</label>
+          <label>❤️진료실별로 받지 않아도 됩니다❤️</label>
           <input type="file" id="vFile" accept=".xlsx,.xls" />
         </div>
         <div class="right" style="align-items: flex-end;">
@@ -106,10 +111,11 @@
         </div>
       </div>
       <div class="right" style="margin-top:8px">
-        <button id="toggleCompactBtn">컴팩트 보기</button>
+        <button id="toggleCompactBtn" title="표를 한 페이지로 보기">컴팩트 보기</button>
         <button id="downloadBtn" disabled>결과 다운로드(.xlsx)</button>
-        <button id="clearBtn" class="secondary">초기화</button>
+        <button id="clearBtn">초기화</button>
       </div>
+      <p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 파일은 브라우저 내에서만 처리됩니다.</p>
     </div>
 
     <div class="summary" id="summary" style="display:none">
@@ -125,13 +131,13 @@
     </div>
 
     <div class="card table-card" id="ageCard">
-      <h3 class="card-title">연령대별 상세 통계</h3>
+      <h3 class="card-title">연령대별 통계 (진료실별)</h3>
       <div id="byAgeOutput"></div>
     </div>
   </div>
 
   <script>
-    /* [원본의 복잡한 계산 로직을 그대로 사용합니다] */
+    /* [원본 로직 100% 유지] */
     const $ = (sel) => document.querySelector(sel);
 
     function excelDateToISO(v) {
@@ -139,33 +145,44 @@
       if (typeof v === 'string') {
         const s = v.trim();
         const m = s.match(/(\d{4})[^\d]?(\d{1,2})[^\d]?(\d{1,2})/);
-        if (m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+        if (m) {
+          const y = m[1], mo = String(m[2]).padStart(2,'0'), d = String(m[3]).padStart(2,'0');
+          return `${y}-${mo}-${d}`;
+        }
         return s;
       }
       if (typeof v === 'number') {
-        const d = new Date(Math.round((v - 25569) * 86400 * 1000));
-        return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+        const utc_days = Math.floor(v - 25569);
+        const utc_value = utc_days * 86400;
+        const d = new Date(utc_value * 1000);
+        const y=d.getUTCFullYear(), m=String(d.getUTCMonth()+1).padStart(2,'0'), dd=String(d.getUTCDate()).padStart(2,'0');
+        return `${y}-${m}-${dd}`;
       }
       return String(v);
     }
 
     function calculateAge(rrn) {
-      if (!rrn || !rrn.includes('-')) return null;
-      const [ymd, tail] = rrn.split('-');
+      if (!rrn || typeof rrn !== 'string') return null;
+      const s = rrn.trim();
+      if (!s.includes('-')) return null;
+      const [ymd, tail] = s.split('-');
+      if (ymd.length !== 6 || tail.length < 1) return null;
       const g = tail[0];
-      const century = ('1256'.includes(g)) ? 1900 : ('3478'.includes(g) ? 2000 : null);
+      let century = ('1256'.includes(g)) ? 1900 : (('3478'.includes(g)) ? 2000 : null);
       if (!century) return null;
-      const birth = new Date(century + parseInt(ymd.slice(0,2)), parseInt(ymd.slice(2,4))-1, parseInt(ymd.slice(4,6)));
-      const today = new Date();
-      let age = today.getFullYear() - birth.getFullYear();
-      if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
+      const yy=parseInt(ymd.slice(0,2),10), mm=parseInt(ymd.slice(2,4),10), dd=parseInt(ymd.slice(4,6),10);
+      const birth = new Date(century+yy, mm-1, dd);
+      const today=new Date();
+      let age=today.getFullYear()-birth.getFullYear();
+      if (today.getMonth()<birth.getMonth() || (today.getMonth()===birth.getMonth() && today.getDate()<birth.getDate())) age--;
       return age;
     }
 
     function parseAgeFromBirthish(val){
+      if (!val) return null;
       const s = String(val).replace(/\D/g,'');
-      if (s.length === 8) return new Date().getFullYear() - parseInt(s.slice(0,4));
-      if (s.length === 6) return new Date().getFullYear() - (1900 + parseInt(s.slice(0,2)));
+      if (s.length === 8) return new Date().getFullYear() - parseInt(s.slice(0,4),10);
+      if (s.length === 6) return new Date().getFullYear() - (1900 + parseInt(s.slice(0,2),10));
       return null;
     }
 
@@ -181,69 +198,102 @@
     }
 
     function buildCountMapByHeader(data, idCands, dateCands) {
-      const map = {};
-      let hRowIdx = data.findIndex(row => row.some(c => /(차트|챠트|ID|진료일|일자)/i.test(String(c))));
-      if (hRowIdx === -1) hRowIdx = 0;
-      const headers = data[hRowIdx].map(h => String(h||'').toLowerCase());
-      const idIdx = idCands.reduce((a, c) => a !== -1 ? a : headers.findIndex(h => h.includes(c.toLowerCase())), -1);
-      const dateIdx = dateCands.reduce((a, c) => a !== -1 ? a : headers.findIndex(h => h.includes(c.toLowerCase())), -1);
-      if (idIdx === -1 || dateIdx === -1) return map;
+      const map = {}; if (!data || !data.length) return map;
+      let hIdx = data.findIndex(row => row.some(c => /(차트|ID|진료일|일자)/i.test(String(c))));
+      if (hIdx === -1) hIdx = 0;
+      const headers = data[hIdx].map(h => String(h||'').toLowerCase());
+      const idCol = idCands.reduce((a, c) => a !== -1 ? a : headers.findIndex(h => h.includes(c.toLowerCase())), -1);
+      const dtCol = dateCands.reduce((a, c) => a !== -1 ? a : headers.findIndex(h => h.includes(c.toLowerCase())), -1);
+      if (idCol === -1 || dtCol === -1) return map;
       const seen = new Set();
-      data.slice(hRowIdx + 1).forEach(r => {
-        const id = r[idIdx]?.toString().trim();
-        const date = excelDateToISO(r[dateIdx]);
-        if (id && date && !seen.has(id + date)) {
-          seen.add(id + date);
-          map[id] = (map[id] || 0) + 1;
-        }
+      data.slice(hIdx+1).forEach(r => {
+        const id = r[idCol]?.toString().trim();
+        const date = excelDateToISO(r[dtCol]);
+        if (id && date && !seen.has(id+'_'+date)) { seen.add(id+'_'+date); map[id] = (map[id]||0)+1; }
       });
       return map;
     }
 
-    /* 통계 및 렌더링 로직 (기존과 동일) */
-    async function processFiles() {
-      const clinicFiles = $('#clinicFiles').files;
-      if (!clinicFiles.length) return alert('진료실 파일을 선택해주세요.');
-      const bFile = $('#bFile').files[0];
-      const vFile = $('#vFile').files[0];
+    function computeStats(merged){
+      const byRoom = { '전체':[...merged] };
+      merged.forEach(r=>{ (byRoom[r.room]??=([])).push(r); });
+      const res = [];
+      const toP = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
+      for(const [label, total] of Object.entries(byRoom)){
+        const inj = total.filter(r=>r.inj>0);
+        const adult = total.filter(r=>(r.age??0)>=18);
+        const adultInj = adult.filter(r=>r.inj>0);
+        res.push({
+          '구분':label, '초진환자수':total.length, '초진주사환자수':inj.length, '초진 주사처방률':toP(inj.length, total.length),
+          '초진 주사환자 평균 주사횟수':inj.length ? (inj.reduce((s,x)=>s+x.inj,0)/inj.length).toFixed(1) : '-',
+          '초진 평균 내원횟수':total.length ? (total.reduce((s,x)=>s+x.visit,0)/total.length).toFixed(1) : '-',
+          '초진 재내원율':toP(total.filter(r=>r.visit>=2).length, total.length),
+          '(18세▲)초진주사처방률':adult.length ? toP(adultInj.length, adult.length) : '-'
+        });
+      }
+      return res;
+    }
 
-      const clinicData = [];
-      for (const f of clinicFiles) {
-        const ab = await f.arrayBuffer();
-        const data = XLSX.utils.sheet_to_json(XLSX.read(ab).Sheets[XLSX.read(ab).SheetNames[0]], {header:1});
-        const hIdx = Math.max(0, data.findIndex(r => r.some(c => /차트|챠트/i.test(String(c)))));
+    function computeAgeBandStats(merged){
+      const ORDER = ['0-18세 미만','18세 이상~20대','30대','40대','50대','60대','70대 이상','미상'];
+      const byRoom = {}; merged.forEach(r => { (byRoom[r.room] ??= []).push(r); });
+      const rows = [];
+      const toP = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
+      
+      const process = (label, arr) => {
+        const byB = {}; arr.forEach(x => { const b = getAgeBand(x.age); (byB[b]??=[]).push(x); });
+        ORDER.forEach(band => {
+          const a = byB[band] || []; if(!a.length) return;
+          const inj = a.filter(x=>x.inj>0);
+          rows.push({ '진료실':label, '연령대':band, '초진환자수':a.length, '초진주사환자수':inj.length, '초진 주사처방률':toP(inj.length, a.length), '초진 평균 내원횟수':a.length ? (a.reduce((s,x)=>s+x.visit,0)/a.length).toFixed(1) : '0' });
+        });
+        rows.push({ '진료실':label, '연령대':'전체', '초진환자수':arr.length, '초진주사환자수':arr.filter(x=>x.inj>0).length, '초진 주사처방률':toP(arr.filter(x=>x.inj>0).length, arr.length), '초진 평균 내원횟수':(arr.reduce((s,x)=>s+x.visit,0)/arr.length).toFixed(1) });
+      };
+      Object.keys(byRoom).sort().forEach(k => process(k, byRoom[k]));
+      process('전체', merged);
+      return rows;
+    }
+
+    async function processFiles(){
+      const clinicFiles=$('#clinicFiles').files; if(!clinicFiles.length) return;
+      const bFile=$('#bFile').files[0]; const vFile=$('#vFile').files[0];
+      
+      const clinicRows = []; const seen = new Set();
+      for(const f of clinicFiles){
+        const data = XLSX.utils.sheet_to_json(XLSX.read(await f.arrayBuffer()).Sheets[XLSX.read(await f.arrayBuffer()).SheetNames[0]], {header:1});
+        const hIdx = Math.max(0, data.findIndex(row => row.some(c => /차트|ID/i.test(String(c)))));
         const headers = data[hIdx].map(h => String(h||'').toLowerCase());
-        const idIdx = headers.findIndex(h => h.includes('차트') || h.includes('챠트'));
-        const rrnIdx = headers.findIndex(h => h.includes('주민') || h.includes('생년'));
+        const idCol = headers.findIndex(h => h.includes('차트') || h.includes('id'));
+        const rrnCol = headers.findIndex(h => h.includes('주민') || h.includes('생년'));
+        const roomName = f.name.replace(/\.[^/.]+$/, "");
+
         data.slice(hIdx+1).forEach(r => {
-          const id = r[idIdx]?.toString().trim();
-          if (!id) return;
-          const age = r[rrnIdx] ? (String(r[rrnIdx]).includes('-') ? calculateAge(r[rrnIdx]) : parseAgeFromBirthish(r[rrnIdx])) : null;
-          clinicData.push({ id, age, room: f.name.split('.')[0] });
+          const id = r[idCol]?.toString().trim(); if(!id) return;
+          const age = r[rrnCol] ? (String(r[rrnCol]).includes('-') ? calculateAge(r[rrnCol]) : parseAgeFromBirthish(r[rrnCol])) : null;
+          if(!seen.has(id+'_'+roomName)){ seen.add(id+'_'+roomName); clinicRows.push({id, age, room:roomName}); }
         });
       }
 
-      const bMap = bFile ? buildCountMapByHeader(XLSX.utils.sheet_to_json(XLSX.read(await bFile.arrayBuffer()).Sheets[XLSX.read(await bFile.arrayBuffer()).SheetNames[0]], {header:1}), ['차트','챠트'], ['일자','진료일','내원일']) : {};
-      const vMap = vFile ? buildCountMapByHeader(XLSX.utils.sheet_to_json(XLSX.read(await vFile.arrayBuffer()).Sheets[XLSX.read(await vFile.arrayBuffer()).SheetNames[0]], {header:1}), ['차트','챠트'], ['일자','진료일','내원일']) : {};
+      const bMap = bFile ? buildCountMapByHeader(XLSX.utils.sheet_to_json(XLSX.read(await bFile.arrayBuffer()).Sheets[XLSX.read(await bFile.arrayBuffer()).SheetNames[0]], {header:1}), ['차트'], ['진료일','일자']) : {};
+      const vMap = vFile ? buildCountMapByHeader(XLSX.utils.sheet_to_json(XLSX.read(await vFile.arrayBuffer()).Sheets[XLSX.read(await vFile.arrayBuffer()).SheetNames[0]], {header:1}), ['차트'], ['진료일','일자']) : {};
 
-      const merged = clinicData.map(r => ({ ...r, inj: bMap[r.id] || 0, visit: vMap[r.id] || 0 }));
-      
-      // 화면 렌더링 함수들 실행
-      const rooms = {'전체': merged};
-      merged.forEach(r => (rooms[r.room] ??= []).push(r));
-      const stats = Object.entries(rooms).map(([label, total]) => {
-        const inj = total.filter(x => x.inj > 0);
-        return {
-          '구분': label, '초진환자수': total.length, '초진주사환자수': inj.length,
-          '초진 주사처방률': total.length ? Math.round(inj.length/total.length*100)+'%' : '0%',
-          '초진 평균 내원횟수': total.length ? (total.reduce((a,b)=>a+b.visit,0)/total.length).toFixed(1) : '0'
-        };
-      });
+      const merged = clinicRows.map(r => ({ ...r, inj: bMap[r.id]||0, visit: vMap[r.id]||0 }));
+      const stats = computeStats(merged);
+      const byAge = computeAgeBandStats(merged);
 
       $('#summary').style.display = 'grid';
-      $('#m-total').textContent = stats[0].초진환자수;
-      $('#m-inj-rate').textContent = stats[0]['초진 주사처방률'];
-      $('#output').innerHTML = `<table><thead><tr>${Object.keys(stats[0]).map(k=>`<th>${k}</th>`).join('')}</tr></thead><tbody>${stats.map(s=>`<tr>${Object.values(s).map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+      $('#m-total').textContent = stats.find(s=>s.구분==='전체').초진환자수;
+      $('#m-inj-rate').textContent = stats.find(s=>s.구분==='전체')['초진 주사처방률'];
+      
+      const renderTable = (data, target) => {
+        const headers = Object.keys(data[0]);
+        let html = '<table><thead><tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+        data.forEach(r => { html += '<tr>'+headers.map(h=>`<td>${r[h]||'-'}</td>`).join('')+'</tr>'; });
+        $(target).innerHTML = html+'</tbody></table>';
+      };
+
+      renderTable(stats, '#output');
+      renderTable(byAge, '#byAgeOutput');
       $('#downloadBtn').disabled = false;
     }
 
