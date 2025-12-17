@@ -43,7 +43,7 @@
       color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px;
     }
     button.secondary{background:#fff}
-    button:disabled{opacity:.5; cursor:not-allowed}
+    button:disabled{opacity:.1; cursor:not-allowed}
     .warn{color:#b91c1c; font-weight:700; margin-top:10px}
 
     table{ width:100%; border-collapse:collapse; table-layout:fixed;
@@ -78,6 +78,14 @@
     .mode-active{border-color:#0ea5e9; box-shadow:0 0 0 2px rgba(14,165,233,.15) inset}
   
     .logo{width:170px;max-width:70vw;height:auto;display:block;margin:0 auto 10px;}
+
+
+    body > *{ position:relative; z-index:1; }
+    
+    /* 배경 투명화 처리 (워터마크 보이게) */
+    table, .table-card, .card, .modal { background: rgba(255,255,255,.10) !important; } // 워터마크 로고 투명도
+
+    
   </style>
 </head>
 <body>
