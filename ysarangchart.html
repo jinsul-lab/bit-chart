@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>의사랑 연령별 통계</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- xlsx: xls/xlsx 모두 지원 가능한 0.18.5 사용 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root{
@@ -15,15 +14,41 @@
     *{box-sizing:border-box}
     body{margin:0; background:var(--bg); color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;}
+    
+    /* ===== JINSUL 디자인 통합 (요청 사항 반영) ===== */
     header{padding:24px 16px 0; text-align:center;}
+    header .logo {
+      width:170px; max-width:70vw; height:auto; display:block; margin:0 auto 10px;
+      filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15);
+    }
+
+    .wm {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      pointer-events:none; z-index:0;
+    }
+    .wm img {
+      width:min(760px, 78vw); opacity:.10; user-select:none;
+      filter: grayscale(1) saturate(0) brightness(.65) contrast(1.05);
+    }
+    
+    body > * { position:relative; z-index:1; }
+
+    /* 표 및 카드 투명도 10% + 블러 1px */
+    .card, table, .metric {
+      background: rgba(255, 255, 255, 0.10) !important;
+      backdrop-filter: blur(1px);
+      -webkit-backdrop-filter: blur(1px);
+    }
+    /* =========================================== */
+
     h1{margin:0 0 6px; font-size:24px; font-weight:800; color:#0f172a}
     p.sub{margin:0; color:var(--muted); font-size:13px}
     .wrap{padding:16px; max-width:1200px; margin:0 auto}
-    .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-top:12px}
+    .card{border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-top:12px}
     .card-title{margin:0 0 8px; font-weight:700; color:#111827}
     .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr auto}
     label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
-    input[type=file]{width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:#fff; color:var(--text)}
+    input[type=file]{width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:rgba(255,255,255,0.4); color:var(--text)}
     button{height:38px; border-radius:10px; border:1px solid var(--border);
       background:radial-gradient(120% 120% at 0% 0%,rgba(34,211,238,.25),rgba(34,211,238,.1));
       color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px;}
@@ -31,166 +56,33 @@
     .right{display:flex; gap:8px; justify-content:flex-end}
 
     .summary{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:6px}
-    .metric{padding:12px; border-radius:12px; background:#fff; border:1px solid var(--border)}
+    .metric{padding:12px; border-radius:12px; border:1px solid var(--border)}
     .metric h3{margin:0; font-size:12px; color:var(--muted)}
     .metric p{margin:6px 0 0; font-size:22px; font-weight:800}
 
     .table-card{overflow:auto; margin-top:10px}
-    table{width:100%; border-collapse:collapse; table-layout:fixed;
-      background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden;}
+    table{width:100%; border-collapse:collapse; table-layout:fixed; border:1px solid var(--border); border-radius:12px; overflow:hidden;}
     th,td{border-bottom:1px solid var(--border); padding:10px 8px; text-align:center; word-break:keep-all; white-space:normal; font-size:12px;}
-    th{position:sticky; top:0; background:var(--thead); z-index:1; color:#0f172a}
-    tbody tr:hover td{background:var(--hover)}
+    th{position:sticky; top:0; background:var(--thead) !important; z-index:1; color:#0f172a}
+    tbody tr:hover td{background:rgba(0,0,0,0.05)}
 
-    tbody tr.whole, tbody tr.room1, tbody tr.room2, tbody tr.room3, tbody tr.room4, tbody tr.room5{ background:transparent !important; }
-    tbody td[rowspan]{ border-top:3px solid var(--group) !important; }
-    tbody tr:first-child td[rowspan]{ border-top:1px solid var(--border) !important; }
-    @supports(selector(tbody tr:has(td[rowspan]))){
-      tbody tr:has(td[rowspan]) td{ border-top:3px solid var(--group) !important; }
-      tbody tr:first-child:has(td[rowspan]) td{ border-top:1px solid var(--border) !important; }
-    }
-
-    .compact table thead .dist-col{display:none}
-    .compact table tbody .dist-col{display:none}
-    .compact table thead .dist-merged{display:table-cell}
-    .compact table tbody .dist-merged{display:table-cell}
     .dist-merged{display:none}
+    .compact .dist-col{display:none}
+    .compact .dist-merged{display:table-cell}
 
-    @media (max-width:899px){
-      .grid{grid-template-columns:1fr}
-      th,td{font-size:11px}
-    }
-
-    /* ✅ 인쇄용 (1️⃣) */
     @media print {
-      body {
-        display: block !important;
-      }
-      .table-card {
-        page-break-inside: avoid;
-        break-inside: avoid-page;
-      }
-      .table-card:nth-of-type(1) {
-        order: -1;
-      }
-
-
-      @media print {
-  /* 업로드 카드/버튼 숨김 */
-  .no-print { display: none !important; }
-
-  /* 프린트 가독성 */
-  body { background: #fff; }
-  .card { box-shadow: none; border-color: #ddd; }
-  .table-card { break-inside: avoid; page-break-inside: avoid; }
-  table { page-break-inside: auto; }
-}
-
+      .no-print { display: none !important; }
+      body { background: #fff; }
+      .card, table { background: #fff !important; backdrop-filter: none !important; }
     }
-
-    }
-  
-/* ===== JINSUL 공통 스타일(로고/워터마크/표 투명도 통일) ===== */
-header .logo{
-  width:170px;
-  max-width:70vw;
-  height:auto;
-  display:block;
-  margin:0 auto 10px;
-  filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15);
-}
-.wm{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
-  z-index:0;
-}
-.wm img{
-  width:min(760px, 78vw);
-  opacity:.10;
-  user-select:none;
-  filter: grayscale(1) saturate(0) brightness(.65) contrast(1.05);
-}
- body > *{ position:relative; z-index:1; }
-    table, .table-card, .card{ background: rgba(255,255,255,.10) !important; }
-}
-
-.wm{ z-index:0 !important; }
-header, .wrap, main, footer{ z-index:1; }
-
-</style>
-<style id="jinsul-unify-v3">
-:root{
-  --jinsul-logo-width:170px;
-  --jinsul-wm-opacity:0.075; /* 워터마크 비침(전체 공통) */
-  --jinsul-panel-alpha:0.86; /* 카드/섹션 배경 */
-  --jinsul-th-alpha:0.90;    /* 테이블 헤더 */
-  --jinsul-td-alpha:0.82;    /* 테이블 셀(데이터) */
-}
-
-/* 워터마크(배경) */
-.wm{
-  position:fixed !important;
-  inset:0 !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  pointer-events:none !important;
-  z-index:0 !important;
-}
-.wm img{
-  width:min(760px, 86vw) !important;
-  height:auto !important;
-  opacity:var(--jinsul-wm-opacity) !important;
-  filter:grayscale(1) saturate(0) brightness(.55) contrast(1.15) !important;
-  user-select:none !important;
-}
-
-/* 본문은 워터마크 위로 */
-body > *{ position:relative; z-index:1; }
-
-/* 상단 로고 통일(회색/동일크기) */
-header, .jinsul-topbrand{
-  text-align:center !important;
-}
-header img.logo,
-header .logo,
-.jinsul-topbrand img,
-img[src*="jinsul-logo"]{
-  width:var(--jinsul-logo-width) !important;
-  max-width:70vw !important;
-  height:auto !important;
-  display:block !important;
-  margin:0 auto 10px !important;
-  filter:grayscale(1) saturate(0) brightness(.45) contrast(1.15) !important;
-}
-
-/* 카드/섹션 배경을 너무 투명하게 만들지 않기(표 안에서도 "적당히 비침") */
-.section, .card, .panel, .box, .container, .wrap, main section{
-  background: rgba(255,255,255,.10(--jinsul-panel-alpha)) !important;
-}
-
-/* 테이블은 셀 단위로 흰색 반투명(숫자 가독성 확보 + 워터마크 은은) */
-table{
-  background: rgba(255,255,255,.10(--jinsul-panel-alpha)) !important;
-}
-th{
-  background: rgba(255,255,255,.10(--jinsul-th-alpha)) !important;
-}
-td{
-  background: rgba(255,255,255,.10(--jinsul-td-alpha)) !important;
-}
-
-/* 테이블 안 글자 가독성(살짝) */
-table, th, td{ color: inherit; }
-</style>
+  </style>
 </head>
 <body>
   <div class="wm" aria-hidden="true"><img src="jinsul-logo.png" alt=""></div>
-<header>
+
+  
+  
+  <header>
     <img src="jinsul-logo.png" alt="JINSUL" class="logo" />
     <h1>의사랑 연령별 통계</h1>
     <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
