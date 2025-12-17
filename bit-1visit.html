@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>비트 1회 내원 통계</title>
+  <title>비트 1회 내원 통계 (주사내원 추가)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -265,16 +265,11 @@ table, th, td{ color: inherit; }
   }
   
 
-  /* ================= 내원경로(환자정보) 파일 =================
-     - B열: 차트번호 (index 1)
-     - C열: 수진자명 (index 2)
-     - L열: 휴대폰번호 (index 11)
-  ========================================================== */
+  /* ================= 내원경로(환자정보) 파일 ================= */
   function buildRouteMapFromRows(rows){
     const map = new Map();
     if(!rows || !rows.length) return map;
 
-    // 헤더가 있든 없든 처리: 유효한 차트번호가 있는 행만 수집
     for(let i=0;i<rows.length;i++){
       const r = rows[i] || [];
       const chart = String(r[1] ?? "").trim();   // B
@@ -319,19 +314,18 @@ table, th, td{ color: inherit; }
       const phone = info ? (info.phone || "") : "";
       const nameFromRoute = info ? (info.name || "") : "";
       const out = Object.assign({}, row);
-      // 이름이 비어있으면 내원경로의 수진자명으로 보강
       if((out["수진자명"]==null || String(out["수진자명"]).trim()==="") && nameFromRoute){
         out["수진자명"] = nameFromRoute;
       }
       out["휴대폰"] = phone;
-      // 표/다운로드용 표시 컬럼명 통일
       if(out["환자명"]==null || String(out["환자명"]).trim()===""){
         out["환자명"] = out["수진자명"] || "";
       }
       return out;
     });
   }
-function smartCSVtoRows(csvText){
+  
+  function smartCSVtoRows(csvText){
     const txt=stripBOM(csvText); const FS=detectDelimiter(txt);
     const wb=XLSX.read(txt,{type:'string',FS});
     const ws=wb.Sheets[wb.SheetNames[0]];
@@ -363,14 +357,13 @@ function smartCSVtoRows(csvText){
     const s=String(val).trim(); const m=s.match(/(\d{1,3})/);
     return m?Math.min(150,parseInt(m[1],10)):null;
   }
-    // 헤더 정규화: 공백/제로폭/BOM 등 제거 + 소문자
   function normHeader(h){
     return String(h||"")
       .replace(/[\s\u00A0\u200B-\u200D\uFEFF]/g,'')
       .toLowerCase();
   }
 
-function formatCell(v){
+  function formatCell(v){
     if(v===null||v===undefined) return "-";
     const s=String(v).trim();
     if(s===""||s==="0"||s==="0.0"||s==="0%"||/^nan/i.test(s)||/^nan%$/i.test(s)) return "-";
@@ -379,70 +372,17 @@ function formatCell(v){
   }
   // ================== 날짜 정규화(yyyy-mm-dd) ==================
   function pad2(n){ return String(n).padStart(2,'0'); }
-  function normalizeVisitDate_old(v){
-    if(v==null) return "";
-    // Date object
-    if(Object.prototype.toString.call(v)==='[object Date]' && !isNaN(v)){
-      return `${v.getFullYear()}-${pad2(v.getMonth()+1)}-${pad2(v.getDate())}`;
-    }
-    // number (Excel serial OR yyyymmddhhmm..)
-    if(typeof v === 'number' && isFinite(v)){
-      // If it's a big number that looks like yyyymmdd... take first 8 digits
-      const asInt = Math.floor(v);
-      const s = String(asInt);
-      if(s.length >= 8 && s[0]==='2'){ // 20xx...
-        const y=s.slice(0,4), m=s.slice(4,6), d=s.slice(6,8);
-        if(+m>=1 && +m<=12 && +d>=1 && +d<=31) return `${y}-${m}-${d}`;
-      }
-      // Otherwise treat as Excel serial
-      const epoch = new Date(Date.UTC(1899,11,30));
-      const d = new Date(epoch.getTime() + Math.round(v)*24*60*60*1000);
-      return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
-    }
-
-    let s = String(v).trim();
-    if(!s) return "";
-
-    // scientific notation as string (e.g., 2.02509E+11)
-    if(/[eE][+-]?\d+/.test(s)){
-      const n = Number(s);
-      if(isFinite(n)){
-        const si = String(Math.floor(n));
-        if(si.length >= 8 && si[0]==='2'){
-          const y=si.slice(0,4), m=si.slice(4,6), d=si.slice(6,8);
-          if(+m>=1 && +m<=12 && +d>=1 && +d<=31) return `${y}-${m}-${d}`;
-        }
-      }
-    }
-
-    // Excel serial as string (e.g., "45213" or "45213.0")
-    if(/^\d{5}(\.\d+)?$/.test(s)){
-      const n = Math.floor(parseFloat(s));
-      if(isFinite(n)){
-        const epoch = new Date(Date.UTC(1899,11,30));
-        const d = new Date(epoch.getTime() + n*24*60*60*1000);
-        return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
-      }
-    }
-    // yyyymmdd or yyyymmddHHMM...
-    let m1 = s.match(/^(\d{4})(\d{2})(\d{2})/);
-    if(m1){
-      return `${m1[1]}-${m1[2]}-${m1[3]}`;
-    }
-    // yyyy-mm-dd / yyyy/mm/dd / yyyy.mm.dd (allow trailing time)
-    let m2 = s.match(/^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
-    if(m2){
-      return `${m2[1]}-${pad2(m2[2])}-${pad2(m2[3])}`;
-    }
-    return s;
-  }
-
   function normalizeVisitDate(v){
     if(v==null) return "";
-    // Excel의 =LEFT(셀,8) 방식: 숫자/문자/과학표기 모두 처리
     let s = "";
     if(typeof v === "number" && isFinite(v)){
       s = String(Math.trunc(v));
+      // 엑셀 날짜 시리얼(45xxx 등) 처리
+      if(v < 1000000) { 
+         const epoch = new Date(Date.UTC(1899,11,30));
+         const d = new Date(epoch.getTime() + Math.round(v)*24*60*60*1000);
+         return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
+      }
     }else{
       s = String(v).trim();
       if(/[eE][+-]?\d+/.test(s)){
@@ -450,20 +390,27 @@ function formatCell(v){
         if(isFinite(n)) s = String(Math.trunc(n));
       }
     }
+    
+    // 단순 8자리(20250101) 혹은 그 이상
     const digits = (s.match(/\d+/g)||[]).join("");
-    if(digits.length < 8) return "";
-    const y = digits.slice(0,4), mo = digits.slice(4,6), d = digits.slice(6,8);
-    const mi = parseInt(mo,10), di = parseInt(d,10);
-    if(!(mi>=1 && mi<=12 && di>=1 && di<=31)) return "";
-    return `${y}-${mo}-${d}`;
-  }
+    if(digits.length >= 8 && (digits.startsWith('20') || digits.startsWith('19'))){
+      const y = digits.slice(0,4), mo = digits.slice(4,6), d = digits.slice(6,8);
+      const mi = parseInt(mo,10), di = parseInt(d,10);
+      if(mi>=1 && mi<=12 && di>=1 && di<=31) return `${y}-${mo}-${d}`;
+    }
+    // yyyy-mm-dd 등
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    let m = s.match(/^(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})/);
+    if(m) return `${m[1]}-${pad2(m[2])}-${pad2(m[3])}`;
 
+    return "";
+  }
 
   function normalizePhone(v){
     if(v===null||v===undefined) return "";
     const s=String(v).trim();
     const digits=s.replace(/\D/g,'');
-    if(digits.length<8) return s; // 원본이라도 보여줌
+    if(digits.length<8) return s; 
     return digits;
   }
 
@@ -638,8 +585,9 @@ function formatCell(v){
           "환자명": nameBy[id] || "",
           "진료실": roomBy[id] || "",
           "성별/나이": sexAgeBy[id] || "",
-          "최초 내원": first,
-          "최종 내원": last,
+          "최초 내원": normalizeVisitDate(first),
+          "주사 내원": injDateBy[id] ? normalizeVisitDate(injDateBy[id]) : "", // [추가됨]
+          "최종 내원": normalizeVisitDate(last),
           "내원 횟수": vcount ? String(vcount) : "",
           "주사일 메모": injMemoBy[id] ? esc(injMemoBy[id]) : "",
           "최종 내원 메모": lastMemoBy[id] ? esc(lastMemoBy[id]) : "",
@@ -678,7 +626,8 @@ function showOneshotModal(list, modeLabel){
       meta.textContent = `총 ${list.length}명 (${modeLabel||'전체'} · 주사 ● 1회)` + (hasDateCol ? '' : `  |  ⚠️ 내원일 컬럼을 못 찾았어요(헤더 확인 필요: ${Object.keys(state.col||{}).join(', ')})`);
     }
 
-    const cols=["차트번호","환자명","휴대폰","최초 내원","최종 내원","내원 횟수","진료실","성별/나이","주사일 메모","최종 내원 메모"];
+    // [수정됨] 컬럼 추가
+    const cols=["차트번호","환자명","휴대폰","최초 내원","주사 내원","최종 내원","내원 횟수","진료실","성별/나이","주사일 메모","최종 내원 메모"];
 
     if(!list || !list.length){
       box.innerHTML = '<p style="color:var(--muted);font-size:12px">해당 조건의 차트가 없습니다.</p>';
@@ -688,12 +637,15 @@ function showOneshotModal(list, modeLabel){
         if((row["환자명"]==null || String(row["환자명"]).trim()==="")){
           row["환자명"] = row["수진자명"] || "";
         }
-        row["최초 내원"] = normalizeVisitDate(row["최초 내원"]); row["최종 내원"]=normalizeVisitDate(row["최종 내원"]);
+        row["최초 내원"] = normalizeVisitDate(row["최초 내원"]); 
+        row["주사 내원"] = normalizeVisitDate(row["주사 내원"]); // 추가됨
+        row["최종 내원"] = normalizeVisitDate(row["최종 내원"]);
         try{ delete row["수진자명"]; }catch(e){}
         return row;
       }).sort((a,b)=>{
-        const da=String(a["최종 내원"]||"").trim();
-        const db=String(b["최종 내원"]||"").trim();
+        // 최초 내원일 오름차순
+        const da=String(a["최초 내원"]||"").trim();
+        const db=String(b["최초 내원"]||"").trim();
         if(!da && !db) return 0;
         if(!da) return 1;
         if(!db) return -1;
@@ -716,16 +668,21 @@ function showOneshotModal(list, modeLabel){
       alert("다운로드할 데이터가 없습니다.");
       return;
     }
-    const cols=["차트번호","환자명","휴대폰","최초 내원","최종 내원","내원 횟수","진료실","성별/나이","주사일 메모","최종 내원 메모"];
+    // [수정됨] 컬럼 추가
+    const cols=["차트번호","환자명","휴대폰","최초 내원","주사 내원","최종 내원","내원 횟수","진료실","성별/나이","주사일 메모","최종 내원 메모"];
     const normalized = (list||[]).map(r=>{
       const row={...r};
       if((row["환자명"]==null || String(row["환자명"]).trim()==="") && row["수진자명"]){
         row["환자명"]=row["수진자명"];
       }
-      row["최초 내원"]=normalizeVisitDate(row["최초 내원"]); row["최종 내원"]=normalizeVisitDate(row["최종 내원"]); return row;
+      row["최초 내원"]=normalizeVisitDate(row["최초 내원"]); 
+      row["주사 내원"]=normalizeVisitDate(row["주사 내원"]); // 추가됨
+      row["최종 내원"]=normalizeVisitDate(row["최종 내원"]); 
+      return row;
     }).sort((a,b)=>{
-      const da=String(a["최종 내원"]||"").trim();
-      const db=String(b["최종 내원"]||"").trim();
+      // 최초 내원일 오름차순
+      const da=String(a["최초 내원"]||"").trim();
+      const db=String(b["최초 내원"]||"").trim();
       if(!da && !db) return 0;
       if(!da) return 1;
       if(!db) return -1;
