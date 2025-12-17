@@ -6,55 +6,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- xlsx: xls/xlsx 모두 지원 가능한 0.18.5 사용 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
+ <style>
     :root{
       --bg:#f6f6f7; --card:#ffffff; --text:#111827; --muted:#6b7280;
       --border:#e5e7eb; --thead:#f3f4f6; --hover:#f9fafb; --group:#cbd5e1;
-      --accent:#22d3ee;
     }
     *{box-sizing:border-box}
-    body{margin:0; background:var(--bg); color:var(--text);
+    body{ margin:0; background:var(--bg); color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;}
+    
+    /* 상단 헤더 로고 스타일 */
     header{padding:24px 16px 0; text-align:center;}
-    h1{margin:0 0 6px; font-size:24px; font-weight:800; color:#0f172a}
-    p.sub{margin:0; color:var(--muted); font-size:13px}
-    .wrap{padding:16px; max-width:1200px; margin:0 auto}
-    .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-top:12px}
-    .card-title{margin:0 0 8px; font-weight:700; color:#111827}
-    .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr auto}
-    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
-    input[type=file]{width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:#fff; color:var(--text)}
-    button{height:38px; border-radius:10px; border:1px solid var(--border);
-      background:radial-gradient(120% 120% at 0% 0%,rgba(34,211,238,.25),rgba(34,211,238,.1));
-      color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px;}
-    button:disabled{opacity:.5; cursor:not-allowed}
-    .right{display:flex; gap:8px; justify-content:flex-end}
-
-    .summary{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:6px}
-    .metric{padding:12px; border-radius:12px; background:#fff; border:1px solid var(--border)}
-    .metric h3{margin:0; font-size:12px; color:var(--muted)}
-    .metric p{margin:6px 0 0; font-size:22px; font-weight:800}
-
-    .table-card{overflow:auto; margin-top:10px}
-    table{width:100%; border-collapse:collapse; table-layout:fixed;
-      background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden;}
-    th,td{border-bottom:1px solid var(--border); padding:10px 8px; text-align:center; word-break:keep-all; white-space:normal; font-size:12px;}
-    th{position:sticky; top:0; background:var(--thead); z-index:1; color:#0f172a}
-    tbody tr:hover td{background:var(--hover)}
-
-    tbody tr.whole, tbody tr.room1, tbody tr.room2, tbody tr.room3, tbody tr.room4, tbody tr.room5{ background:transparent !important; }
-    tbody td[rowspan]{ border-top:3px solid var(--group) !important; }
-    tbody tr:first-child td[rowspan]{ border-top:1px solid var(--border) !important; }
-    @supports(selector(tbody tr:has(td[rowspan]))){
-      tbody tr:has(td[rowspan]) td{ border-top:3px solid var(--group) !important; }
-      tbody tr:first-child:has(td[rowspan]) td{ border-top:1px solid var(--border) !important; }
+    header .logo{
+      width:170px; max-width:70vw; height:auto; display:block; margin:0 auto 10px;
+      filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15);
     }
 
-    .compact table thead .dist-col{display:none}
-    .compact table tbody .dist-col{display:none}
-    .compact table thead .dist-merged{display:table-cell}
-    .compact table tbody .dist-merged{display:table-cell}
-    .dist-merged{display:none}
+    /* 배경 워터마크 로고 설정 */
+    .wm {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      pointer-events:none; z-index:0;
+    }
+    .wm img {
+      width: min(760px, 78vw); /* 로고 크기 */
+      opacity: .075; /* 로고 진하기 */
+      user-select:none;
+      filter: grayscale(1) saturate(0) brightness(.65) contrast(1.05);
+    }
+    
+    /* 컨텐츠 레이어를 워터마크 위로 설정 */
+    body > *{ position:relative; z-index:1; }
+
+    h1{margin:0 0 6px; font-size:24px; font-weight:800; color:#0f172a}
+    p.sub{margin:0; color:var(--muted); font-size:12px}
+    .wrap{padding:16px; max-width:1200px; margin:0 auto}
+    
+    /* 메인 카드 및 표 투명화 (워터마크 비침 효과) */
+    .card {
+      background: rgba(255,255,255, 0.10) !important; 
+      backdrop-filter: blur(1px); /* 가독성을 위한 배경 흐림 */
+      border: 1px solid var(--border); border-radius:14px; padding:14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.05); margin-top:12px;
+    }
+    
+    .card-title{margin:0 0 8px; font-weight:700; color:#111827}
+    .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr auto}
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    input[type=file], input[type=text]{
+      width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background: rgba(255,255,255, 0.5); color:var(--text);
+    }
+    
+    .btnrow{display:flex; gap:8px; justify-content:flex-end; align-items:end; flex-wrap:wrap}
+    button{
+      height:38px; border-radius:10px; border:1px solid var(--border);
+      background:radial-gradient(120% 120% at 0% 0%,rgba(34,211,238,.25),rgba(34,211,238,.1));
+      color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px;
+    }
+    button.secondary{background:#fff}
+    button:disabled{opacity:.3; cursor:not-allowed}
+
+    table{ 
+      width:100%; border-collapse:collapse; table-layout:fixed;
+      background: rgba(255,255,255, 0.1) !important; 
+      border:1px solid var(--border); border-radius:12px; overflow:hidden;
+    }
+    th, td{
+      padding:10px 8px; text-align:center; word-break:keep-all; white-space:normal;
+      border-bottom:1px solid var(--border); font-size:12px;
+    }
+    th{position:sticky; top:0; z-index:1; background:var(--thead); color:#0f172a}
+    tbody tr:hover td{background: rgba(14,165,233, 0.05);}
+    
+    /* 팝업(모달) - 불투명 가독성 버전 */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; padding:16px; z-index:50}
+    .modal{
+      background: #ffffff !important; 
+      opacity: 1 !important; 
+      border:1px solid var(--border); border-radius:14px; width:min(1100px, 100%); max-height:85vh; overflow:auto; box-shadow:0 10px 40px rgba(0,0,0,.2); 
+    }
+    .modal table { background: #fff !important; }
+    .modal th, .modal td { opacity: 1 !important; color: #111827 !important; }
+
+    .modal-header{display:flex; justify-content:space-between; align-items:center; padding:14px 14px 10px; border-bottom:1px solid var(--border)}
+    .modal-title{font-weight:800}
+    .modal-body{padding:12px 14px 14px}
+    .modal-actions{display:flex; gap:8px; flex-wrap:wrap}
+    .pill{display:inline-block; font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted)}
+    .mode-active{border-color:#0ea5e9; box-shadow:0 0 0 2px rgba(14,165,233,.15) inset}
+
+
 
     @media (max-width:899px){
       .grid{grid-template-columns:1fr}
