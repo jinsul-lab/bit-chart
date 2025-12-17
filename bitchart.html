@@ -78,12 +78,16 @@
     .mode-active{border-color:#0ea5e9; box-shadow:0 0 0 2px rgba(14,165,233,.15) inset}
   
     .logo{width:170px;max-width:70vw;height:auto;display:block;margin:0 auto 10px;}
-
-
-    body > *{ position:relative; z-index:1; }
     
-    /* 배경 투명화 처리 (워터마크 보이게) */
-    table, .table-card, .card, .modal { background: rgba(255,255,255,.10) !important; } // 워터마크 로고 투명도
+
+/* 일반 카드와 테이블은 투명하게 유지 */
+table, .table-card, .card { background: rgba(255,255,255,.10) !important; } 
+
+/* 팝업창(모달)은 다시 불투명하게 설정 */
+.modal { 
+  background: #ffffff !important; 
+  opacity: 1 !important; 
+}
 
     
   </style>
