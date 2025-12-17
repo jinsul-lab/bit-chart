@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>비트 1회 내원 통계 (주사내원+원본로고)</title>
+  <title>비트 연령별 통계</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -66,7 +66,7 @@
   
     .mode-active{border-color:#0ea5e9; box-shadow:0 0 0 2px rgba(14,165,233,.15) inset}
   
-  /* UI polish (v1.2.2) */
+  /* UI polish */
   .grid{grid-template-columns: 1fr 1fr; gap:16px}
   @media (max-width: 860px){ .grid{grid-template-columns:1fr} .btnrow{justify-content:flex-start; flex-wrap:wrap} }
   label{font-weight:600}
@@ -81,7 +81,8 @@ header .logo{
   height:auto;
   display:block;
   margin:0 auto 10px;
-  /* 로고 색상 복구 (필터 제거함) */
+  /* ▼▼▼ 여기가 핵심! 노란 로고를 진한 회색으로 변경 ▼▼▼ */
+  filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15);
 }
 .wm{
   position:fixed;
@@ -141,7 +142,7 @@ header, .wrap, main, footer{ z-index:1; }
 /* 본문은 워터마크 위로 */
 body > *{ position:relative; z-index:1; }
 
-/* 상단 로고 스타일 (색상 필터 제거됨) */
+/* 상단 로고 스타일 (흑백 필터 적용됨) */
 header, .jinsul-topbrand{
   text-align:center !important;
 }
@@ -154,6 +155,8 @@ img[src*="jinsul-logo"]{
   height:auto !important;
   display:block !important;
   margin:0 auto 10px !important;
+  /* ▼▼▼ 흑백 필터 재적용 ▼▼▼ */
+  filter: grayscale(1) saturate(0) brightness(.45) contrast(1.15) !important;
 }
 
 .section, .card, .panel, .box, .container, .wrap, main section{
