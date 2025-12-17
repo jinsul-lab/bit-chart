@@ -114,13 +114,8 @@ header .logo{
   user-select:none;
   filter: grayscale(1) saturate(0) brightness(.65) contrast(1.05);
 }
-body > *{ position:relative; z-index:1; }
-
-table{ background: rgba(255,255,255,.50) !important; }
-th{ background: rgba(243,244,246,.70) !important; }
-td{ background: rgba(255,255,255,.50) !important; }
-.table-card, .card, .panel, .result, .results, .output, .box, .section{
-  background: rgba(255,255,255,.10) !important;
+ body > *{ position:relative; z-index:1; }
+    table, .table-card, .card{ background: rgba(255,255,255,.10) !important; }
 }
 
 .wm{ z-index:0 !important; }
@@ -175,18 +170,18 @@ img[src*="jinsul-logo"]{
 
 /* 카드/섹션 배경을 너무 투명하게 만들지 않기(표 안에서도 "적당히 비침") */
 .section, .card, .panel, .box, .container, .wrap, main section{
-  background: rgba(255,255,255,var(--jinsul-panel-alpha)) !important;
+  background: rgba(255,255,255,.10(--jinsul-panel-alpha)) !important;
 }
 
 /* 테이블은 셀 단위로 흰색 반투명(숫자 가독성 확보 + 워터마크 은은) */
 table{
-  background: rgba(255,255,255,var(--jinsul-panel-alpha)) !important;
+  background: rgba(255,255,255,.10(--jinsul-panel-alpha)) !important;
 }
 th{
-  background: rgba(255,255,255,var(--jinsul-th-alpha)) !important;
+  background: rgba(255,255,255,.10(--jinsul-th-alpha)) !important;
 }
 td{
-  background: rgba(255,255,255,var(--jinsul-td-alpha)) !important;
+  background: rgba(255,255,255,.10(--jinsul-td-alpha)) !important;
 }
 
 /* 테이블 안 글자 가독성(살짝) */
