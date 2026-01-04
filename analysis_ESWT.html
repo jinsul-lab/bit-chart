@@ -142,6 +142,7 @@
 
       <div class="card"><h2>표 7. 치료 금액 구간별 핵심지표</h2><div style="overflow-x:auto;"><table id="table7"></table></div></div>
       <div class="card"><h2>표 8. 치료사별 핵심지표</h2><div style="overflow-x:auto;"><table id="table8"></table></div></div>
+      <div class="card"><h2>표 8-1. 충격파 치료사별 신환/재진 예약 비율(O/X)</h2><div style="overflow-x:auto;"><table id="table8r"></table></div></div>
       <div class="card"><h2>표 9. 첫 치료 → 2회차 재방문 주기</h2><div style="overflow-x:auto;"><table id="table9"></table></div></div>
 
       <div class="card" style="background: rgba(231, 245, 255, 0.6);">
@@ -278,9 +279,13 @@
         }
         const t = rows.map(x=>toStr(x.typeRaw).trim()).find(v=>v) || '';
         const rd = rows.map(x=>toStr(x.round).trim()).find(v=>v) || '';
+        const nf = rows.map(x=>toStr(x.newFlag).trim()).find(v=>v) || '';
+        const rv = rows.map(x=>toStr(x.reserve).trim()).find(v=>v) || '';
         rows.forEach(x=>{
           if(!toStr(x.typeRaw).trim()) x.typeRaw = t;
           if(!toStr(x.round).trim()) x.round = rd;
+          if(!toStr(x.newFlag).trim()) x.newFlag = nf;
+          if(!toStr(x.reserve).trim()) x.reserve = rv;
         });
       }
       return recs;
@@ -468,6 +473,12 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
 
         const chart = toStr(r['환자 차트']).trim() || ctx.chart;
 
+        const reserveRaw = toStr(r['예약']).trim();
+        const reserveVal = (()=>{
+          const v = reserveRaw ? reserveRaw.toUpperCase() : '';
+          return (v==='O' || v==='X') ? v : '';
+        })();
+
         recs.push({
           therapist: ctx.therapist || '미상',
           name: ctx.name,
@@ -483,6 +494,7 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
           amount: amt,
           visitKey: vk,
           visitDate: visitDt,
+          reserve: reserveVal,
           round: round
         });
       }
@@ -1005,6 +1017,87 @@ renderMatrix('table5', visitBins, ageCols, (bin, age)=> (keepMat.get(bin)?.get(a
          {k:'2회차전환',l:'2회차 전환'},{k:'3회유지',l:'3회 유지'},{k:'주사병행',l:'주사치료 병행'},
          {k:'평균치료',l:'평균 치료 횟수'}],
         t8
+      );
+
+
+      // 표 8-1: 충격파 치료사별 신환/재진 예약 비율(O/X) (방문 단위)
+      const cohortKeySet = new Set(cohort.map(p=>p.key));
+      const firstShockMap = new Map(cohort.map(p=>[p.key, p.firstShockKey]));
+
+      // 방문(환자+방문일+치료타입+회차+치료사) 단위로 예약값을 1개로 만든다.
+      const visitAgg = new Map();
+      for(const r of records){
+        if(!isShock(r.typeRaw)) continue;
+        if(!cohortKeySet.has(r.key)) continue;
+        const vid = [r.key, r.therapist||'미상', String(r.visitKey||''), normalizeType(r.typeRaw||''), toStr(r.round||'')].join('||');
+        if(!visitAgg.has(vid)){
+          visitAgg.set(vid, {pkey:r.key, therapist:(r.therapist||'미상'), visitKey:r.visitKey, reserve:''});
+        }
+        const a = visitAgg.get(vid);
+        const rv = toStr(r.reserve).trim().toUpperCase();
+        if(rv==='O') a.reserve = 'O';
+        else if(rv==='X' && a.reserve!=='O') a.reserve = 'X';
+      }
+
+      const byTher = new Map();
+      const ensureTher = (t)=>{
+        if(!byTher.has(t)) byTher.set(t, {t, nO:0, nX:0, nM:0, rO:0, rX:0, rM:0});
+        return byTher.get(t);
+      };
+
+      for(const v of visitAgg.values()){
+        const first = firstShockMap.get(v.pkey);
+        const isNewVisit = (first !== null && first !== undefined && v.visitKey === first);
+        const st = ensureTher(v.therapist);
+        const bucket = isNewVisit ? 'n' : 'r';
+        if(v.reserve==='O') st[bucket+'O']++;
+        else if(v.reserve==='X') st[bucket+'X']++;
+        else st[bucket+'M']++;
+      }
+
+      const therRows = Array.from(byTher.values()).sort((a,b)=>a.t.localeCompare(b.t,'ko'));
+      const t8r = therRows.map(x=>{
+        const nDen = x.nO + x.nX;
+        const rDen = x.rO + x.rX;
+        return {
+          '치료사': x.t,
+          '신환 O': x.nO,
+          '신환 X': x.nX,
+          '신환 예약 비율': nDen ? fmtPct(x.nO/nDen) : '0%',
+          '재진 O': x.rO,
+          '재진 X': x.rX,
+          '재진 예약 비율': rDen ? fmtPct(x.rO/rDen) : '0%',
+          '미기입': x.nM + x.rM
+        };
+      });
+
+      // 총 합계 행
+      const tot8r = therRows.reduce((acc,x)=>{
+        acc.nO += x.nO; acc.nX += x.nX; acc.nM += x.nM;
+        acc.rO += x.rO; acc.rX += x.rX; acc.rM += x.rM;
+        return acc;
+      }, {nO:0,nX:0,nM:0,rO:0,rX:0,rM:0});
+
+      const nDenAll = tot8r.nO + tot8r.nX;
+      const rDenAll = tot8r.rO + tot8r.rX;
+      t8r.push({
+        _rowClass: 'total-row',
+        '치료사': '총 합계',
+        '신환 O': tot8r.nO,
+        '신환 X': tot8r.nX,
+        '신환 예약 비율': nDenAll ? fmtPct(tot8r.nO/nDenAll) : '0%',
+        '재진 O': tot8r.rO,
+        '재진 X': tot8r.rX,
+        '재진 예약 비율': rDenAll ? fmtPct(tot8r.rO/rDenAll) : '0%',
+        '미기입': tot8r.nM + tot8r.rM
+      });
+
+      renderSimpleTable('table8r',
+        [{k:'치료사',l:'치료사',w:90},
+         {k:'신환 O',l:'신환 O'},{k:'신환 X',l:'신환 X'},{k:'신환 예약 비율',l:'신환 예약 비율'},
+         {k:'재진 O',l:'재진 O'},{k:'재진 X',l:'재진 X'},{k:'재진 예약 비율',l:'재진 예약 비율'},
+         {k:'미기입',l:'미기입'}],
+        t8r
       );
 
       // 표 9: 재방문 주기(첫 충격파 → 2회차)
