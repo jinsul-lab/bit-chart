@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>JINSUL - 전략 분석 시스템 (v 0.0.4.3)</title>
+  <title>JINSUL - 전략 분석 시스템 (v 0.0.4.4)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -22,7 +22,7 @@
     .card { background: rgba(255, 255, 255, 0); padding: 14px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px; }
     .card h2 { margin: 0 0 10px; font-size: 16px; border-left: 4px solid var(--blue); padding-left: 10px; }
 
-    .drop-zone { border: 2px dashed #cbd5e1; padding: 26px; text-align: center; border-radius: 10px; background: rgba(255, 255, 255, 0.5); cursor: pointer; }
+    .drop-zone {border: 2px dashed #cbd5e1; padding: 26px; text-align: center; border-radius: 10px; background: rgba(255, 255, 255, 0.5); cursor: pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; box-sizing:border-box; min-height:96px; }
     .drop-zone.active { border-color: var(--blue); background: rgba(34, 139, 230, 0.1); }
 
     .cards-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
@@ -48,12 +48,39 @@
     .total-col { background: rgba(34, 139, 230, 0.1); font-weight: bold; }
     .total-row td { background: rgba(34, 139, 230, 0.08); font-weight: bold; }
     .hidden { display: none; }
+    .file-hidden{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
 
     footer { text-align: center; padding: 30px 20px; color: var(--gray); font-size: 0.95rem; font-weight: 500; width: 100%; position: relative; z-index: 10; }
-  </style>
+  
+    /* --- Added: Subtables & Follow-up summary --- */
+    .subtablesGrid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:12px; }
+    .miniCard{ border:1px solid #e9ecef; border-radius: 10px; background:#fff; padding:10px; }
+    .miniTitle{ font-weight:700; margin:0 0 6px 0; display:flex; justify-content:space-between; align-items:baseline; font-size:13px; }
+    .miniSub{ font-weight:500; color:#666; font-size:12px; }
+    .mini-table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+    .mini-table th, .mini-table td{ padding:6px 6px; font-size:12px; }
+    .mini-table th{ white-space:nowrap; }
+    .table-scroll{ overflow-x:auto; }
+    .proposalWrap{ display:grid; grid-template-columns: 1fr; gap:12px; align-items:start; }
+    
+    .proposalPanel{ background: rgba(255,255,255,0.75); border:1px solid #d0ebff; border-radius: 12px; padding:12px; }
+@media (max-width: 900px){ .proposalWrap{ grid-template-columns: 1fr; } .subtablesGrid{ grid-template-columns: 1fr; } }
+    .followSummary{ background: rgba(255,255,255,0.75); border:1px solid #d0ebff; border-radius: 12px; padding:12px; }
+    .followSummary .title{ font-weight:700; margin-bottom:6px; }
+    .followSummary ol{ margin:0; padding-left:18px; }
+    .followSummary li{ margin:0 0 8px 0; }
+    .followSummary .meta{ font-size:12px; color:#555; margin-top:2px; }
+    .kpiLines div{ margin:0; }
+    
+  .cardHeaderRow{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.toggleBtn{ border:1px solid #cfe3ff; background:#fff; padding:6px 10px; border-radius:10px; font-size:12px; cursor:pointer; }
+.toggleBtn:hover{ background:#f8fbff; }
+.collapseWrap.collapsed{ display:none; }
+.kpiRowLabel{ font-weight:600; }
+</style>
 </head>
 <body>
-  <div class="version-tag">v 0.0.4.3</div>
+  <div class="version-tag">v 0.0.4.4</div>
   <img src="jinsul-logo.png" class="watermark" alt="bg" />
   <header>
     <img src="jinsul-logo.png" alt="logo" />
@@ -62,10 +89,10 @@
 
   <div class="container">
     <div class="card">
-      <div class="drop-zone" id="dropZone">
+      <label class="drop-zone" id="dropZone" for="fileInput">
         <strong id="statusText">데이터 업로드 (드래그/클릭)</strong>
-        <input type="file" id="fileInput" class="hidden" accept=".csv, .xlsx" />
-      </div>
+        <input type="file" id="fileInput" class="file-hidden" accept=".csv, .xlsx, .xls" />
+      </label>
     </div>
 
     <div id="dashArea" class="dashboard-grid hidden">
@@ -145,9 +172,25 @@
       <div class="card"><h2>표 8-1. 충격파 치료사별 신환/재진 예약 비율(O/X)</h2><div style="overflow-x:auto;"><table id="table8r"></table></div></div>
       <div class="card"><h2>표 9. 첫 치료 → 2회차 재방문 주기</h2><div style="overflow-x:auto;"><table id="table9"></table></div></div>
 
-      <div class="card" style="background: rgba(231, 245, 255, 0.6);">
+      
+      <div class="card"><h2>표 10. 진료실별 핵심지표</h2><div style="overflow-x:auto;"><table id="table10"></table></div></div>
+      <div class="card"><h2>표 11. 치료사별·연령대별 평균 치료 횟수</h2><div style="overflow-x:auto;"><table id="table11"></table></div></div>
+      <div class="card"><h2>표 12. 치료사별·연령대별 치료 횟수 분포</h2><div id="table12"></div></div>
+
+            <div class="card" id="card13">
+  <div class="cardHeaderRow">
+    <h2>표 13. 치료사별·연령대별 재방문 안내 연락 시점 및 예약 확인(권장)</h2>
+    <button id="toggle13" class="toggleBtn" type="button">펼치기</button>
+  </div>
+  <div id="table13Wrap" class="collapseWrap collapsed">
+    <div id="table13"></div>
+    <div id="followSummary13" class="followSummary" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<div class="card" style="background: rgba(231, 245, 255, 0.6);">
         <h2>병원 경영 전략 제안서</h2>
-        <div id="analysisText" style="line-height:1.7; font-size:13px; color:#333; padding: 4px;"></div>
+        <div class="proposalWrap"><div id="analysisText" class="proposalPanel" style="line-height:1.7; font-size:13px; color:#333; padding: 12px;"></div></div>
       </div>
       </div>
     </div>
@@ -156,18 +199,45 @@
   <footer>© JINSUL · 경험과 가치를 현실화하는 컨설팅</footer>
 
   <script>
+
+
     // -----------------------------
     // 0) UI 이벤트
     // -----------------------------
     const dz = document.getElementById('dropZone');
     const fi = document.getElementById('fileInput');
 
-    dz.onclick = () => fi.click();
+    // 전역 드래그 기본동작 방지 (드롭 시 브라우저가 파일을 열어버리는 현상 방지)
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => e.preventDefault());
+
+    function getDroppedFile(dt){
+      if(!dt) return null;
+      if(dt.files && dt.files.length) return dt.files[0];
+      if(dt.items){
+        for(const it of dt.items){
+          if(it && it.kind === 'file') return it.getAsFile();
+        }
+      }
+      return null;
+    }
+
     fi.onchange = e => handleFile(e.target.files && e.target.files[0]);
+
+    // 표 13 펼치기/접기
+    const toggle13Btn = document.getElementById('toggle13');
+    const table13Wrap = document.getElementById('table13Wrap');
+    if(toggle13Btn && table13Wrap){
+      toggle13Btn.addEventListener('click', ()=>{
+        const nowCollapsed = table13Wrap.classList.toggle('collapsed');
+        toggle13Btn.textContent = nowCollapsed ? '펼치기' : '접기';
+      });
+    }
+
 
     ['dragenter','dragover'].forEach(n => dz.addEventListener(n, e => { e.preventDefault(); dz.classList.add('active'); }));
     ['dragleave','drop'].forEach(n => dz.addEventListener(n, e => { e.preventDefault(); dz.classList.remove('active'); }));
-    dz.addEventListener('drop', e => handleFile(e.dataTransfer.files && e.dataTransfer.files[0]));
+    dz.addEventListener('drop', e => handleFile(getDroppedFile(e.dataTransfer)));
 
     // -----------------------------
     // 1) 전역 상태
@@ -281,11 +351,13 @@
         const rd = rows.map(x=>toStr(x.round).trim()).find(v=>v) || '';
         const nf = rows.map(x=>toStr(x.newFlag).trim()).find(v=>v) || '';
         const rv = rows.map(x=>toStr(x.reserve).trim()).find(v=>v) || '';
+        const rm = rows.map(x=>toStr(x.room).trim()).find(v=>v) || '';
         rows.forEach(x=>{
           if(!toStr(x.typeRaw).trim()) x.typeRaw = t;
           if(!toStr(x.round).trim()) x.round = rd;
           if(!toStr(x.newFlag).trim()) x.newFlag = nf;
           if(!toStr(x.reserve).trim()) x.reserve = rv;
+          if(!toStr(x.room).trim()) x.room = rm;
         });
       }
       return recs;
@@ -419,7 +491,7 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
       });
 
       // 2) 치료사/환자 컨텍스트 ffill
-      let ctx = { therapist:'', name:'', chart:'', sexAge:'', newFlag:'', visitDt:null, typeRaw:'', round:'' };
+      let ctx = { therapist:'', name:'', chart:'', sexAge:'', newFlag:'', visitDt:null, typeRaw:'', round:'', room:'' };
 
       const recs = [];
       for(const r of cleaned){
@@ -435,6 +507,7 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
           ctx.visitDt = null;
           ctx.typeRaw = '';
           ctx.round = '';
+          ctx.room = '';
           continue; // 헤더 행 제외
         }
 
@@ -466,6 +539,10 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
         if(round) ctx.round = round;
         else round = ctx.round || '';
 
+        let room = toStr(r['진료실']).trim();
+        if(room) ctx.room = room;
+        else room = ctx.room || '';
+
         const amt = moneyOrNull(r['금액']);
 
         const sexAge = toStr(r['성별/연령']).trim() || ctx.sexAge;
@@ -495,6 +572,7 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
           visitKey: vk,
           visitDate: visitDt,
           reserve: reserveVal,
+          room: room,
           round: round
         });
       }
@@ -577,6 +655,11 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
           }
         }
 
+        let entryRoom = '';
+        if(entryKey !== null){
+          entryRoom = rows.filter(r=>r.visitKey===entryKey).map(r=>toStr(r.room).trim()).find(v=>v) || '';
+        }
+
         let daysTo2 = null;
         if(prKeys.length >= 2){
           daysTo2 = Math.max(0, Math.round((prKeys[1]-prKeys[0]) / 86400000));
@@ -591,6 +674,7 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
           ageBucket: any.ageBucket,
           isNew: isNew,
           entryPrice: entry,
+          entryRoom: entryRoom,
           visitCountAll: visitKeysAll.size,
           shockVisitCount: primaryVisitKeys.size,
           firstShockKey: firstPrimary,
@@ -722,6 +806,35 @@ function buildPriceButtons(){
       setHtml(tableId, thead + tbody);
     }
 
+    function renderFollowSummary(rows, elementId='followSummary13'){
+      const el = document.getElementById(elementId);
+      if(!el) return;
+
+      const items = (rows||[]).filter(r=>{
+        return r && r['치료사'] && r['치료사']!=='총 합계' && !(toStr(r['비고']).includes('표본 적음')) && (r._n||0) >= 5;
+      }).map(r=>{
+        const medTxt = (r._med===null || r._med===undefined) ? '-' : (Math.round(r._med)+'일');
+        return {
+          t: r['치료사'],
+          a: r['연령대'],
+          rec: r['권장 연락'],
+          one: r._oneRate||0,
+          r7: r._r7||0,
+          med: medTxt,
+          n: r._n||0,
+          score: (r._score||0)
+        };
+      }).sort((a,b)=>b.score-a.score).slice(0,5);
+
+      if(items.length===0){
+        el.innerHTML = `<div class="title">재방문 관리 요약</div><div class="muted">표본이 부족해 요약을 만들 수 없습니다 (n≥5 기준).</div>`;
+        return;
+      }
+      const li = items.map(x=>`<li><b>${x.t} / ${x.a}</b><div class="meta">${x.rec}</div><div class="meta">1회만 내원 ${fmtPct(x.one)} · 7일 내 재방문율 ${fmtPct(x.r7)} · 2회차 주기 ${x.med} · n=${fmtInt(x.n)}</div></li>`).join('');
+      el.innerHTML = `<div class="title">재방문 관리 요약 (우선순위 Top ${items.length})</div><ol>${li}</ol>`;
+    }
+
+
     function renderMatrix(tableId, rowLabels, colLabels, getVal){
       // Adds both row totals (right) and column totals (bottom)
       const head = `<thead><tr><th style="width:110px;">구분</th>` +
@@ -753,6 +866,60 @@ function buildPriceButtons(){
       body += `</tbody>`;
       setHtml(tableId, head + body);
     }
+
+
+    function renderMatrixAvg(tableId, rowLabels, colLabels, getStat){
+      // rowLabels: rows, colLabels: cols
+      // getStat(r,c) -> {sum:number, n:number}
+      const head = `<thead><tr><th style="width:110px;">구분</th>` +
+        colLabels.map(c=>`<th>${c}</th>`).join('') +
+        `<th class="total-col">전체</th></tr></thead>`;
+
+      const colSum = new Array(colLabels.length).fill(0);
+      const colN   = new Array(colLabels.length).fill(0);
+      let gSum = 0, gN = 0;
+
+      let body = `<tbody>`;
+      rowLabels.forEach(rLabel=>{
+        let rSum = 0, rN = 0;
+        let cells = '';
+        colLabels.forEach((cLabel, ci)=>{
+          const st = getStat(rLabel, cLabel) || {sum:0,n:0};
+          const s = (st.sum||0), n = (st.n||0);
+          rSum += s; rN += n;
+          colSum[ci] += s; colN[ci] += n;
+
+          if(n>0){
+            const avg = s/n;
+            cells += `<td><div>${avg.toFixed(1)}</div><div style="font-size:10px;color:var(--gray);">n=${n}</div></td>`;
+          }else{
+            cells += `<td>-</td>`;
+          }
+        });
+        gSum += rSum; gN += rN;
+        const rAvgCell = (rN>0)
+          ? `<td class="total-col"><div>${(rSum/rN).toFixed(1)}</div><div style="font-size:10px;color:var(--gray);">n=${rN}</div></td>`
+          : `<td class="total-col">-</td>`;
+        body += `<tr><td>${rLabel}</td>${cells}${rAvgCell}</tr>`;
+      });
+
+      // totals row (가중 평균)
+      const totCells = colLabels.map((c,ci)=>{
+        const n = colN[ci], s = colSum[ci];
+        return n>0
+          ? `<td><div>${(s/n).toFixed(1)}</div><div style="font-size:10px;color:var(--gray);">n=${n}</div></td>`
+          : `<td>-</td>`;
+      }).join('');
+
+      const gCell = (gN>0)
+        ? `<td class="total-col"><div>${(gSum/gN).toFixed(1)}</div><div style="font-size:10px;color:var(--gray);">n=${gN}</div></td>`
+        : `<td class="total-col">-</td>`;
+
+      body += `<tr class="total-row"><td>총 합계</td>${totCells}${gCell}</tr>`;
+      body += `</tbody>`;
+      setHtml(tableId, head + body);
+    }
+
 
     function cohortPatients(){
       return activePatients().filter(p => p.isNew && (selPVal===-1 || p.entryPrice===selPVal));
@@ -1157,7 +1324,291 @@ if(!cohortKeySet.has(r.key)) continue;
 
       renderMatrix('table9', speedBins, ageCols, (bin, age)=> (spMat.get(bin)?.get(age)) || 0);
 
-            // 제안서 텍스트 (최소 5줄, 조건에 따라 최대 10줄까지 자동 확장)
+
+      // 표 10: 진료실별 핵심지표 (신환 첫 치료 기준)
+      const roomKey = (p)=>{ const r = toStr(p.entryRoom).trim(); return r ? r : '미상'; };
+      const rooms = Array.from(new Set(cohort.map(roomKey))).sort((a,b)=>a.localeCompare(b,'ko'));
+      const t10 = [];
+      rooms.forEach(rm=>{
+        const ps = cohort.filter(p=>roomKey(p)===rm);
+        const nn = ps.length;
+        const c2 = ps.filter(p=>p.shockVisitCount>=2).length;
+        const c3 = ps.filter(p=>p.shockVisitCount>=3).length;
+        const inj = ps.filter(p=>p.hasInjection).length;
+        const sumV = ps.reduce((a,p)=>a+p.shockVisitCount,0);
+        const r7 = ps.filter(p => (p.daysTo2 !== null && p.daysTo2 <= 7)).length;
+        const r14 = ps.filter(p => (p.daysTo2 !== null && p.daysTo2 <= 14)).length;
+        t10.push({
+          '진료실': rm,
+          '신환 수': fmtInt(nn),
+          '2회차 전환율': nn?fmtPct(c2/nn):'0%',
+          '3회차 유지율': nn?fmtPct(c3/nn):'0%',
+          '주사 병행 비율': nn?fmtPct(inj/nn):'0%',
+          '평균 치료 횟수': nn?(sumV/nn).toFixed(1):'0.0',
+          '7일 내 재방문율': nn?fmtPct(r7/nn):'0%',
+          '14일 내 재방문율': nn?fmtPct(r14/nn):'0%',
+        });
+      });
+      // 총 합계
+      t10.push({
+        '진료실':'총 합계',
+        '신환 수': fmtInt(n),
+        '2회차 전환율': n?fmtPct(convN/n):'0%',
+        '3회차 유지율': n?fmtPct(r3N/n):'0%',
+        '주사 병행 비율': n?fmtPct(comboN/n):'0%',
+        '평균 치료 횟수': avgV.toFixed(1),
+        '7일 내 재방문율': n?fmtPct(r7N/n):'0%',
+        '14일 내 재방문율': n?fmtPct(r14N/n):'0%',
+        _rowClass:'total-row'
+      });
+
+      renderSimpleTable('table10',
+        [{k:'진료실',l:'진료실',w:90},
+         {k:'신환 수',l:'신환 수'},
+         {k:'2회차 전환율',l:'2회차 전환율'},
+         {k:'3회차 유지율',l:'3회차 유지율'},
+         {k:'주사 병행 비율',l:'주사 병행 비율'},
+         {k:'평균 치료 횟수',l:'평균 치료 횟수'},
+         {k:'7일 내 재방문율',l:'7일 내 재방문율'},
+         {k:'14일 내 재방문율',l:'14일 내 재방문율'}],
+        t10
+      );
+
+      // 표 11: 치료사별·연령대별 평균 치료 횟수
+      const ageSet = new Set(ageCols);
+      const getTAStat = (t,a)=>{
+        const ps = cohort.filter(p => p.therapist===t && ((p.ageBucket||'미상')===a));
+        const s = ps.reduce((x,p)=>x+p.shockVisitCount,0);
+        return {sum:s, n:ps.length};
+      };
+      renderMatrixAvg('table11', therapists, ageCols, getTAStat);
+
+      // 표 12: 치료사별·연령대별 치료 횟수 분포 (Follow-up 설계용)
+      // 표 12: 치료사별·연령대별 치료 횟수 분포 (치료사 1명당 표 1개)
+      const bins = ['1회','2회','3회','4회','5회 이상'];
+      const binOf = (c)=>{
+        if(c<=1) return '1회';
+        if(c===2) return '2회';
+        if(c===3) return '3회';
+        if(c===4) return '4회';
+        return '5회 이상';
+      };
+
+      const usedAges = new Set();
+      const tMap = new Map(); // therapist -> {therapist,totalN,m:Map}
+      cohort.forEach(p=>{
+        const t = p.therapist || '미상';
+        const a = AGE_BUCKETS.includes(p.ageBucket) ? p.ageBucket : '미상';
+        usedAges.add(a);
+        const b = binOf(p.shockVisitCount || 0);
+        if(!tMap.has(t)) tMap.set(t, {therapist:t, totalN:0, m:new Map()});
+        const o = tMap.get(t);
+        o.totalN += 1;
+        const k = b + '||' + a;
+        o.m.set(k, (o.m.get(k)||0) + 1);
+      });
+
+      const ageCols12 = AGE_BUCKETS.filter(a=>usedAges.has(a));
+
+      function buildTherapistDistTable(o){
+        const t = o.therapist || '미상';
+        let html = `<div class="miniCard">`;
+        html += `<div class="miniTitle"><span>${t}</span><span class="miniSub">신환 ${fmtInt(o.totalN)}명</span></div>`;
+        html += `<div class="table-scroll"><table class="mini-table"><thead><tr><th style="width:74px">치료 횟수</th>`;
+        ageCols12.forEach(a=>{ html += `<th>${a}</th>`; });
+        html += `<th style="width:72px">합계</th></tr></thead><tbody>`;
+
+        bins.forEach(b=>{
+          let rowSum = 0;
+          html += `<tr><td><b>${b}</b></td>`;
+          ageCols12.forEach(a=>{
+            const v = o.m.get(b+'||'+a) || 0;
+            rowSum += v;
+            html += `<td>${v?fmtInt(v):''}</td>`;
+          });
+          html += `<td><b>${rowSum?fmtInt(rowSum):''}</b></td></tr>`;
+        });
+
+        // totals row
+        html += `<tr class="total-row"><td><b>합계</b></td>`;
+        let grand = 0;
+        ageCols12.forEach(a=>{
+          let colSum = 0;
+          bins.forEach(b=>{ colSum += (o.m.get(b+'||'+a)||0); });
+          grand += colSum;
+          html += `<td><b>${colSum?fmtInt(colSum):''}</b></td>`;
+        });
+        html += `<td><b>${grand?fmtInt(grand):''}</b></td></tr>`;
+
+        html += `</tbody></table></div></div>`;
+        return html;
+      }
+
+      const therapistList = Array.from(tMap.values()).sort((a,b)=>toStr(a.therapist).localeCompare(toStr(b.therapist),'ko'));
+      if(therapistList.length===0){
+        setHtml('table12', '<div class="muted">표시할 데이터가 없습니다.</div>');
+      }else{
+        setHtml('table12', `<div class="subtablesGrid">` + therapistList.map(buildTherapistDistTable).join('') + `</div>`);
+      }
+
+      
+// 표 13: 치료사별·연령대별 재방문 안내 연락 시점 및 예약 확인(권장)
+const followMap = new Map();
+cohort.forEach(p=>{
+  const t = toStr(p.therapist).trim() || '미상';
+  const a = AGE_BUCKETS.includes(p.ageBucket) ? p.ageBucket : '미상';
+  const k = t + '||' + a;
+  if(!followMap.has(k)){
+    followMap.set(k, {치료사:t, 연령대:a, n:0, one:0, r7:0, r14:0, days:[]});
+  }
+  const o = followMap.get(k);
+  o.n += 1;
+  if(p.shockVisitCount === 1) o.one += 1;
+  if(p.daysTo2 !== null && isFinite(p.daysTo2)){
+    o.days.push(p.daysTo2);
+    if(p.daysTo2 <= 7) o.r7 += 1;
+    if(p.daysTo2 <= 14) o.r14 += 1;
+  }
+});
+
+const recFor = (n0, oneRate, r7Rate) => {
+  if(n0 < 5){
+    return {rec:'표본 적음(참고)', note:'표본 적음'};
+  }
+  if(oneRate >= 0.60 || r7Rate < 0.25){
+    return {rec:'첫 치료 후 48시간 안에 예약 확인 + 3일째/7일째 재방문 안내', note:''};
+  }
+  if(r7Rate < 0.40){
+    return {rec:'첫 치료 후 72시간 안에 예약 확인 + 7일째 재방문 안내', note:''};
+  }
+  return {rec:'미예약자는 7일 이내 재방문 안내 및 예약 확인', note:''};
+};
+const fmtMed = (m) => (m===null || m===undefined) ? '-' : (Math.round(m) + '일');
+
+// used age columns
+const usedAges13 = new Set();
+followMap.forEach(o=>{
+  if(AGE_BUCKETS.includes(o.연령대)) usedAges13.add(o.연령대);
+});
+const ageCols13 = AGE_BUCKETS.filter(a=>usedAges13.has(a));
+const finalAgeCols13 = (ageCols13 && ageCols13.length) ? ageCols13 : AGE_BUCKETS.filter(a=>a!=='미상');
+
+// therapist -> byAge
+const t13Map = new Map();
+followMap.forEach(o=>{
+  const t = o.치료사;
+  if(!t13Map.has(t)) t13Map.set(t, {therapist:t, byAge:new Map()});
+  t13Map.get(t).byAge.set(o.연령대, o);
+});
+
+function buildTherapistFollowTable(tObj){
+  const cols = finalAgeCols13;
+  let totN = 0, totOne = 0, totR7 = 0, totR14 = 0;
+  let allDays = [];
+  cols.forEach(a=>{
+    const o = tObj.byAge.get(a);
+    if(!o) return;
+    totN += (o.n||0);
+    totOne += (o.one||0);
+    totR7 += (o.r7||0);
+    totR14 += (o.r14||0);
+    if(o.days && o.days.length) allDays = allDays.concat(o.days);
+  });
+  const oneRateT = totN ? (totOne/totN) : 0;
+  const r7RateT  = totN ? (totR7/totN) : 0;
+  const r14RateT = totN ? (totR14/totN) : 0;
+  const medT = allDays.length ? median(allDays) : null;
+  const recT = recFor(totN, oneRateT, r7RateT);
+
+  const thead = `<thead><tr><th style="width:160px;">구분</th>` +
+    cols.map(c=>`<th>${c}</th>`).join('') +
+    `<th class="total-col">전체</th></tr></thead>`;
+
+  const td = (v)=>`<td>${v===null||v===undefined||v===''?'-':v}</td>`;
+
+  const row = (label, cellFn, totalVal) => {
+    let cells = '';
+    cols.forEach(a=>{
+      const o = tObj.byAge.get(a);
+      cells += td(cellFn(o));
+    });
+    cells += `<td class="total-col">${totalVal}</td>`;
+    return `<tr><td class="kpiRowLabel">${label}</td>${cells}</tr>`;
+  };
+
+  const tbody = `<tbody>` +
+    row('신환 수(명)', o => o ? fmtInt(o.n||0) : '-', `<b>${fmtInt(totN)}</b>`) +
+    row('1회만 내원 비율', o => {
+        if(!o || !o.n) return '-';
+        return fmtPct((o.one||0)/(o.n||1));
+      }, `<b>${fmtPct(oneRateT)}</b>`) +
+    row('7일 내 재방문율', o => {
+        if(!o || !o.n) return '-';
+        return fmtPct((o.r7||0)/(o.n||1));
+      }, `<b>${fmtPct(r7RateT)}</b>`) +
+    row('14일 내 재방문율', o => {
+        if(!o || !o.n) return '-';
+        return fmtPct((o.r14||0)/(o.n||1));
+      }, `<b>${fmtPct(r14RateT)}</b>`) +
+    row('2회차 재방문 주기(중간값)', o => {
+        if(!o || !o.n) return '-';
+        const m = (o.days && o.days.length) ? median(o.days) : null;
+        return fmtMed(m);
+      }, `<b>${fmtMed(medT)}</b>`) +
+    row('권장 연락', o => {
+        if(!o || !o.n) return '-';
+        const oneR = (o.one||0)/(o.n||1);
+        const r7R = (o.r7||0)/(o.n||1);
+        return recFor(o.n||0, oneR, r7R).rec;
+      }, `<b>${recT.rec}</b>`) +
+    `</tbody>`;
+
+  return `
+    <div class="subtableCard">
+      <div class="subtableHeader">
+        <div class="name">${tObj.therapist}</div>
+        <div class="meta">신환 ${fmtInt(totN)}명</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>${thead}${tbody}</table>
+      </div>
+    </div>
+  `;
+}
+
+const t13List = Array.from(t13Map.values()).sort((a,b)=>toStr(a.therapist).localeCompare(toStr(b.therapist),'ko'));
+if(t13List.length===0){
+  setHtml('table13', '<div class="muted">표시할 데이터가 없습니다.</div>');
+}else{
+  setHtml('table13', `<div class="subtablesGrid">` + t13List.map(buildTherapistFollowTable).join('') + `</div>`);
+}
+
+// 요약(Top 5) 계산용 rows
+const followRows = Array.from(followMap.values()).map(o=>{
+  const n0 = o.n || 0;
+  const oneRate = n0 ? (o.one/n0) : 0;
+  const r7Rate = n0 ? (o.r7/n0) : 0;
+  const r14Rate = n0 ? (o.r14/n0) : 0;
+  const med = o.days.length ? median(o.days) : null;
+  const rec = recFor(n0, oneRate, r7Rate);
+  return {
+    '치료사': o.치료사,
+    '연령대': o.연령대,
+    '권장 연락': rec.rec,
+    '비고': rec.note,
+    _n: n0,
+    _oneRate: oneRate,
+    _r7: r7Rate,
+    _r14: r14Rate,
+    _med: med,
+    _score: ((oneRate||0)*0.55 + (1-(r7Rate||0))*0.35 + (med===null?0:Math.min(1, med/14))*0.10)
+  };
+});
+
+// 표 13 하단: 재방문 관리 요약(Top 5)
+renderFollowSummary(followRows, 'followSummary13');
+
+// 제안서 텍스트 (조건에 따라 자동 확장, 줄 수 제한 없음)
       const lines = [];
       const marks = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫'];
       const addLine = (htmlLine)=>{
@@ -1174,6 +1625,11 @@ if(!cohortKeySet.has(r.key)) continue;
         addLine(`<b>주사치료 병행 비율</b>은 <b>${fmtPct(comboN/n)}</b> 입니다. 병행 비중이 높으면 <u>동의/안내/진료 안내 기준</u>을 표준화해 CS를 줄이고, 병행 기준을 팀 내 합의로 정리하세요.`);
         addLine(`<b>7일 내 재방문율</b>은 <b>${fmtPct(r7N/n)}</b>, <b>14일 내 재방문율</b>은 <b>${fmtPct(r14N/n)}</b> 입니다. 7일이 낮고 14일만 높은 경우, <u>예약 대기기간</u>과 <u>스케줄 병목</u>을 우선 점검하세요.`);
         addLine(`치료사별(표 8)로 전환/유지 편차가 크면, <u>초진 설명 문구</u>와 <u>치료 횟수별 목표/기록 템플릿</u>을 통일해 성과를 평준화하는 것이 1순위입니다.`);
+
+                addLine(`치료사별(표 8)로 전환/유지 편차가 크면, <u>초진 설명 문구</u>와 <u>치료 횟수별 목표/기록 템플릿</u>을 통일해 성과를 평준화하는 것이 1순위입니다.`);
+        addLine(`<b>치료사별 신환/재진 예약 비율(표 8-1)</b>을 함께 보세요. 신환 예약이 낮으면 <u>초진 당일 예약확정</u>과 <u>미예약자 재방문 안내 연락 시점(7~10일) 및 예약 확인</u>을 표준 프로세스로 두는 것이 효과적입니다.`);
+        addLine(`<b>진료실별 핵심지표(표 10)</b>에서 병목이 생기는 진료실이 있으면, <u>진료실별 슬롯(가용시간)·동선·보조인력 배치</u>를 먼저 손보는 것이 전환 개선에 빠릅니다.`);
+        addLine(`<b>치료사·연령대별 평균/분포(표 11~12)</b>를 기준으로, <u>연령대별 설명 난이도</u>와 <u>follow-up(재방문 안내 연락 시점 및 예약 확인)</u> 메시지를 표준화하면 ‘우연한 성과’를 ‘재현 가능한 성과’로 만들 수 있습니다.`);
 
         // ---- 추가 인사이트 (조건 충족 시 6~10줄로 확장)
         const oneN = cohort.filter(p => p.shockVisitCount === 1).length;
@@ -1233,15 +1689,16 @@ if(!cohortKeySet.has(r.key)) continue;
         }
       }
 
-      // 최소 5줄 보장 + 최대 10줄 제한
+      // 최소 5줄 보장
       while(lines.length < 5 && n>0){
         addLine("표 1~9의 분포를 확인해 <u>전환이 약한 구간</u>부터 우선순위로 개선안을 적용하세요.");
       }
-      const MAX_LINES = 10;
-      const finalLines = lines.slice(0, MAX_LINES);
+      const finalLines = lines;
 
 document.getElementById('analysisText').innerHTML = finalLines.map(x=>`<div style="margin:4px 0;">${x}</div>`).join('');
     }
-  </script>
+  
+
+</script>
 </body>
 </html>
