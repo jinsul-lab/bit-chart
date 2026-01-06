@@ -102,12 +102,12 @@
         <div id="v-count-sub" class="sub"></div>
       </div>
       <div class="dash-item">
-        <div style="font-size:12px;color:var(--gray);">2회차 전환율</div>
+        <div style="font-size:12px;color:var(--gray);">2회 이상 치료 비율</div>
         <div id="v-conv" class="val">0%</div>
         <div id="v-conv-sub" class="sub"></div>
       </div>
       <div class="dash-item">
-        <div style="font-size:12px;color:var(--gray);">3회차 유지율</div>
+        <div style="font-size:12px;color:var(--gray);">3회 이상 치료 비율</div>
         <div id="v-ret" class="val">0%</div>
         <div id="v-ret-sub" class="sub"></div>
       </div>
@@ -465,7 +465,133 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
     }
 
 
-    // -----------------------------
+    
+
+// -----------------------------
+// 1.5) 엑셀 파싱(헤더가 깨져도 안정적으로)
+//  - 일부 ERP 엑셀은 헤더가 병합되어 '치료차수...예약'처럼 뭉치거나 빈 헤더가 생깁니다.
+//  - 그 경우에도 컬럼 위치(A~Q)를 기준으로 안정적으로 읽습니다.
+// -----------------------------
+function pickBestSheetName(wb){
+  const names = wb.SheetNames || [];
+  if(!names.length) return null;
+
+  let best = names[0];
+  let bestScore = -1;
+
+  for(const name of names){
+    const ws = wb.Sheets[name];
+    if(!ws) continue;
+    const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+    if(!aoa || !aoa.length) continue;
+
+    // header row 후보 찾기
+    let headerIdx = -1;
+    for(let i=0;i<Math.min(30, aoa.length); i++){
+      const r = aoa[i] || [];
+      const c0 = toStr(r[0]).trim();
+      const c2 = toStr(r[2]).trim();
+      if(c0 === '번호' && c2 === '이름'){ headerIdx = i; break; }
+    }
+
+    // 데이터 행 수(대략)
+    let dataCount = 0;
+    for(let i=(headerIdx>=0?headerIdx+1:0); i<aoa.length; i++){
+      const r = aoa[i] || [];
+      const filled = r.slice(0, 8).some(v => toStr(v).trim() !== '');
+      if(filled) dataCount++;
+    }
+
+    // 점수: header 발견 + 데이터량
+    const score = (headerIdx>=0 ? 10000 : 0) + dataCount;
+    if(score > bestScore){
+      bestScore = score;
+      best = name;
+    }
+  }
+  return best;
+}
+
+function extractRowsFromWorkbook(wb){
+  const sheetName = pickBestSheetName(wb);
+  const ws = sheetName ? wb.Sheets[sheetName] : wb.Sheets[wb.SheetNames[0]];
+  if(!ws) return [];
+
+  const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+  if(!aoa || !aoa.length) return [];
+
+  // 헤더 행 찾기 ('번호' / '이름' 기준)
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(50, aoa.length); i++){
+    const r = aoa[i] || [];
+    if(toStr(r[0]).trim()==='번호' && toStr(r[2]).trim()==='이름'){
+      headerIdx = i; break;
+    }
+  }
+  if(headerIdx < 0) headerIdx = 0;
+
+  const out = [];
+  for(let i=headerIdx+1; i<aoa.length; i++){
+    const r = aoa[i] || [];
+    // 완전 공백행 스킵
+    if(!r.length || r.every(v => toStr(v).trim()==='')) continue;
+
+    // ERP 포맷(치료부위 유무에 따라 컬럼이 1칸씩 달라질 수 있음)
+// ① 충격파(부위 있음): 번호, 차트, 이름, 성별/연령, 신/재, 치료부위, 치료차수, 진료실, 금액, 인센, 예약, 차트작성, 방문일, 등록일, 치료타입, 비고, 총
+// ② 도수(부위 없음): 번호, 차트, 이름, 성별/연령, 신/재, 치료차수, 진료실, 금액, 인센, 예약, 차트작성, 방문일, 등록일, 치료타입, 비고, 총
+const headerRow = aoa[headerIdx] || [];
+const hasPartCol = headerRow.some(v => toStr(v).trim() === '치료부위');
+
+const idx = {
+  no: 0, chart: 1, name: 2, sexAge: 3, newFlag: 4,
+  part: hasPartCol ? 5 : null,
+  round: hasPartCol ? 6 : 5,
+  room:  hasPartCol ? 7 : 6,
+  amount:hasPartCol ? 8 : 7,
+  incent:hasPartCol ? 9 : 8,
+  reserve:hasPartCol ? 10 : 9,
+  chartWrite:hasPartCol ? 11 : 10,
+  visitDate:hasPartCol ? 12 : 11,
+  regDate: hasPartCol ? 13 : 12,
+  type:    hasPartCol ? 14 : 13,
+  memo:    hasPartCol ? 15 : 14,
+  total:   hasPartCol ? 16 : 15
+};
+
+const obj = {
+  '번호': r[idx.no] ?? '',
+  '환자 차트': r[idx.chart] ?? '',
+  '이름': r[idx.name] ?? '',
+  '성별/연령': r[idx.sexAge] ?? '',
+  '신/재': r[idx.newFlag] ?? '',
+  '치료부위': (idx.part===null ? '' : (r[idx.part] ?? '')),
+  '치료차수': r[idx.round] ?? '',
+  '진료실': r[idx.room] ?? '',
+  '금액': r[idx.amount] ?? '',
+  '인센': r[idx.incent] ?? '',
+  '예약': r[idx.reserve] ?? '',
+  '차트작성': r[idx.chartWrite] ?? '',
+  '방문일': r[idx.visitDate] ?? '',
+  '등록일': r[idx.regDate] ?? '',
+  '치료타입': r[idx.type] ?? '',
+  '비고': r[idx.memo] ?? '',
+  '총': r[idx.total] ?? ''
+};
+
+    // 데이터 행이 아니라 시트 하단의 요약/빈 줄(예: '치료횟수') 같은 경우 걸러내기
+    const maybeName = toStr(obj['이름']).trim();
+    const maybeType = toStr(obj['치료타입']).trim();
+    const maybePart = toStr(obj['치료부위']).trim();
+    const maybeNo = toStr(obj['번호']).trim();
+
+    if(!maybeNo && !maybeName && !maybeType && !maybePart) continue;
+
+    out.push(obj);
+  }
+  return out;
+}
+
+// -----------------------------
     // 2) 파일 로드 -> 정규화 -> 환자 집계
     // -----------------------------
     function handleFile(file){
@@ -475,7 +601,9 @@ function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
       const r = new FileReader();
       r.onload = e => {
         const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-        rawRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:""});
+        rawRows = extractRowsFromWorkbook(wb);
+        const picked = pickBestSheetName(wb);
+        if(picked) document.getElementById('statusText').textContent = `로드됨: ${file.name} · 시트: ${picked}`;
         buildData();
         selPVal = -1;
         buildPriceButtons();
@@ -1096,23 +1224,36 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
 
 
       
-      // 표 2: 요약 핵심지표
-      const injRate = n ? comboN/n : 0;
-      const selTxt = (selPVal===-1 ? '전체' : (selPVal.toLocaleString()+'원'));
-      const exclTxt = (exclAmtSet && exclAmtSet.size)
-        ? (' / 제외: ' + Array.from(exclAmtSet).sort((a,b)=>a-b).map(v=>v.toLocaleString()+'원').join(', '))
-        : '';
+// 표 2: 요약 핵심지표
+const injRate = n ? comboN/n : 0;
+const selTxt = (selPVal===-1 ? '전체' : (selPVal.toLocaleString()+'원'));
+const exclTxt = (exclAmtSet && exclAmtSet.size)
+  ? (' / 제외: ' + Array.from(exclAmtSet).sort((a,b)=>a-b).map(v=>v.toLocaleString()+'원').join(', '))
+  : '';
 
-      renderKeyValueTable('table2', [
-        {k:'신환 수(치료 금액)', v: `${fmtInt(n)}명 / ${selTxt}${exclTxt}`},
-        {k:'2회차 전환율', v: n ? fmtPct(convN/n) : '0%'},
-        {k:'3회차 유지율', v: n ? fmtPct(r3N/n) : '0%'},
-        {k:'주사치료 병행 비율', v: n ? fmtPct(injRate) : '0%'},
-        {k:'평균 치료 횟수(충격파)', v: avgV.toFixed(2)},
-        {k:'중간값 치료 횟수(충격파)', v: String(medV)},
-        {k:'최빈 치료 횟수(충격파)', v: (modeV.modes.length ? modeV.modes.join(', ') : '-')},
-        {k:'7일 내 재방문율', v: n ? fmtPct(r7N/n) : '0%'},
-        {k:'14일 내 재방문율', v: n ? fmtPct(r14N/n) : '0%'}]);
+// 치료 횟수(정확히 n회) 분포: 1~4회는 '딱 n회', 5회 이상은 '5회+'
+const c1 = shockCounts.filter(v=>v===1).length;
+const c2 = shockCounts.filter(v=>v===2).length;
+const c3 = shockCounts.filter(v=>v===3).length;
+const c4 = shockCounts.filter(v=>v===4).length;
+const c5p = shockCounts.filter(v=>v>=5).length;
+
+renderKeyValueTable('table2', [
+  {k:'신환 수(치료 금액)', v: `${fmtInt(n)}명 / ${selTxt}${exclTxt}`},
+  {k:'1회만(%)', v: n ? `${fmtPct(c1/n)} (${fmtInt(c1)}명)` : '0% (0명)'},
+  {k:'2회만(%)', v: n ? `${fmtPct(c2/n)} (${fmtInt(c2)}명)` : '0% (0명)'},
+  {k:'3회만(%)', v: n ? `${fmtPct(c3/n)} (${fmtInt(c3)}명)` : '0% (0명)'},
+  {k:'4회만(%)', v: n ? `${fmtPct(c4/n)} (${fmtInt(c4)}명)` : '0% (0명)'},
+  {k:'5회 이상(%)', v: n ? `${fmtPct(c5p/n)} (${fmtInt(c5p)}명)` : '0% (0명)'},
+  {k:'2회 이상 치료 비율(%)', v: n ? fmtPct(convN/n) : '0%'},
+  {k:'3회 이상 치료 비율(%)', v: n ? fmtPct(r3N/n) : '0%'},
+  {k:'주사치료 병행 비율', v: n ? fmtPct(injRate) : '0%'},
+  {k:'평균 치료 횟수(' + '충격파' + ')', v: avgV.toFixed(2)},
+  {k:'중간값 치료 횟수(' + '충격파' + ')', v: String(medV)},
+  {k:'최빈 치료 횟수(' + '충격파' + ')', v: (modeV.modes.length ? modeV.modes.join(', ') : '-')},
+  {k:'7일 내 재방문율', v: n ? fmtPct(r7N/n) : '0%'},
+  {k:'14일 내 재방문율', v: n ? fmtPct(r14N/n) : '0%'}
+]);
 
 // 표 3: 연령대별 (신환 수 / 재방문 / 평균 치료 횟수)
       const byAge = new Map(ageCols.map(a=>[a, {patients:0, shockDays:0, revisitPatients:0, revisitCount:0}]));
@@ -1420,8 +1561,8 @@ if(!cohortKeySet.has(r.key)) continue;
         t10.push({
           '진료실': rm,
           '신환 수': fmtInt(nn),
-          '2회차 전환율': nn?fmtPct(c2/nn):'0%',
-          '3회차 유지율': nn?fmtPct(c3/nn):'0%',
+          '2회 이상 치료 비율': nn?fmtPct(c2/nn):'0%',
+          '3회 이상 치료 비율': nn?fmtPct(c3/nn):'0%',
           '주사 병행 비율': nn?fmtPct(inj/nn):'0%',
           '평균 치료 횟수': nn?(sumV/nn).toFixed(1):'0.0',
           '7일 내 재방문율': nn?fmtPct(r7/nn):'0%',
@@ -1432,8 +1573,8 @@ if(!cohortKeySet.has(r.key)) continue;
       t10.push({
         '진료실':'총 합계',
         '신환 수': fmtInt(n),
-        '2회차 전환율': n?fmtPct(convN/n):'0%',
-        '3회차 유지율': n?fmtPct(r3N/n):'0%',
+        '2회 이상 치료 비율': n?fmtPct(convN/n):'0%',
+        '3회 이상 치료 비율': n?fmtPct(r3N/n):'0%',
         '주사 병행 비율': n?fmtPct(comboN/n):'0%',
         '평균 치료 횟수': avgV.toFixed(1),
         '7일 내 재방문율': n?fmtPct(r7N/n):'0%',
@@ -1444,8 +1585,8 @@ if(!cohortKeySet.has(r.key)) continue;
       renderSimpleTable('table10',
         [{k:'진료실',l:'진료실',w:90},
          {k:'신환 수',l:'신환 수'},
-         {k:'2회차 전환율',l:'2회차 전환율'},
-         {k:'3회차 유지율',l:'3회차 유지율'},
+         {k:'2회 이상 치료 비율',l:'2회 이상 치료 비율'},
+         {k:'3회 이상 치료 비율',l:'3회 이상 치료 비율'},
          {k:'주사 병행 비율',l:'주사 병행 비율'},
          {k:'평균 치료 횟수',l:'평균 치료 횟수'},
          {k:'7일 내 재방문율',l:'7일 내 재방문율'},
@@ -1699,13 +1840,11 @@ renderFollowSummary(followRows, 'followSummary13');
         addLine("선택된 조건에 해당하는 신환(충격파) 데이터가 없습니다. 치료금액 필터를 '전체'로 바꾸거나 원본 데이터를 확인해주세요.");
       }else{
         // 기본 5줄 (항상 제공)
-        addLine(`<b>2회차 전환율</b>은 <b>${fmtPct(convN/n)}</b> 입니다. <u>첫 치료 당일에 2회차 예약을 선점</u>하고, 미예약자는 <u>재방문 안내 연락 시점(7~10일) 및 예약 확인</u>를 권장합니다.`);
-        addLine(`<b>3회차 유지율</b>은 <b>${fmtPct(r3N/n)}</b> 입니다. 3회 이상을 목표로 <u>3~5회 계획</u>을 안내하고, <u>통증/기능 지표</u>를 치료 횟수별로 기록해 동기부여를 강화하세요.`);
+        addLine(`<b>2회 이상 치료 비율</b>은 <b>${fmtPct(convN/n)}</b> 입니다. <u>첫 치료 당일에 2회차 예약을 선점</u>하고, 미예약자는 <u>재방문 안내 연락 시점(7~10일) 및 예약 확인</u>를 권장합니다.`);
+        addLine(`<b>3회 이상 치료 비율</b>은 <b>${fmtPct(r3N/n)}</b> 입니다. <u>4주 내 5회 치료</u>를 목표로, 초진에서 <u>5회 계획(일정)</u>을 먼저 확정하고 <u>3회차는 중간 관문</u>으로 관리하세요. 치료 횟수별로 <u>통증/기능 지표</u>를 기록해 동기부여를 강화하면 5회 도달률을 끌어올릴 수 있습니다.`);
         addLine(`<b>주사치료 병행 비율</b>은 <b>${fmtPct(comboN/n)}</b> 입니다. 병행 비중이 높으면 <u>동의/안내/진료 안내 기준</u>을 표준화해 CS를 줄이고, 병행 기준을 팀 내 합의로 정리하세요.`);
         addLine(`<b>7일 내 재방문율</b>은 <b>${fmtPct(r7N/n)}</b>, <b>14일 내 재방문율</b>은 <b>${fmtPct(r14N/n)}</b> 입니다. 7일이 낮고 14일만 높은 경우, <u>예약 대기기간</u>과 <u>스케줄 병목</u>을 우선 점검하세요.`);
         addLine(`치료사별(표 8)로 전환/유지 편차가 크면, <u>초진 설명 문구</u>와 <u>치료 횟수별 목표/기록 템플릿</u>을 통일해 성과를 평준화하는 것이 1순위입니다.`);
-
-                addLine(`치료사별(표 8)로 전환/유지 편차가 크면, <u>초진 설명 문구</u>와 <u>치료 횟수별 목표/기록 템플릿</u>을 통일해 성과를 평준화하는 것이 1순위입니다.`);
         addLine(`<b>치료사별 신환/재진 예약 비율(표 8-1)</b>을 함께 보세요. 신환 예약이 낮으면 <u>초진 당일 예약확정</u>과 <u>미예약자 재방문 안내 연락 시점(7~10일) 및 예약 확인</u>을 표준 프로세스로 두는 것이 효과적입니다.`);
         addLine(`<b>진료실별 핵심지표(표 10)</b>에서 병목이 생기는 진료실이 있으면, <u>진료실별 슬롯(가용시간)·동선·보조인력 배치</u>를 먼저 손보는 것이 전환 개선에 빠릅니다.`);
         addLine(`<b>치료사·연령대별 평균/분포(표 11~12)</b>를 기준으로, <u>연령대별 설명 난이도</u>와 <u>follow-up(재방문 안내 연락 시점 및 예약 확인)</u> 메시지를 표준화하면 ‘우연한 성과’를 ‘재현 가능한 성과’로 만들 수 있습니다.`);
@@ -1713,10 +1852,10 @@ renderFollowSummary(followRows, 'followSummary13');
         // ---- 추가 인사이트 (조건 충족 시 6~10줄로 확장)
         const oneN = cohort.filter(p => p.shockVisitCount === 1).length;
         if(oneN/n >= 0.35){
-          addLine(`<b>1회 종료 비중</b>이 높습니다(<b>${fmtPct(oneN/n)}</b>). 초진에서 <u>‘왜 3회 이상이 필요한지’</u>를 구조적으로 설명하고, <u>2회차 예약/결제 동선</u>을 단순화하세요.`);
+          addLine(`<b>1회 종료 비중</b>이 높습니다(<b>${fmtPct(oneN/n)}</b>). 초진에서 <u>‘왜 4주 내 5회가 필요한지’</u>를 구조적으로 설명하고, <u>2회차 예약/결제 동선</u>을 단순화하세요.`);
         }
 
-        // 치료사 편차(2회차 전환율 기준)
+        // 치료사 편차(2회 이상 치료 비율 기준)
         const tStats = Array.from(new Set(cohort.map(p=>p.therapist))).map(t=>{
           const ps = cohort.filter(p=>p.therapist===t);
           const nn = ps.length;
@@ -1730,11 +1869,11 @@ renderFollowSummary(followRows, 'followSummary13');
           if((maxC2 - minC2) >= 0.20){
             const best = tStats.reduce((a,b)=> b.c2>a.c2?b:a, tStats[0]);
             const worst = tStats.reduce((a,b)=> b.c2<a.c2?b:a, tStats[0]);
-            addLine(`치료사별 <b>2회차 전환율 편차</b>가 큽니다(<b>${fmtPct(maxC2)}</b> vs <b>${fmtPct(minC2)}</b>). <u>${best.t}</u>의 초진 운영을 좋은 사례로 참고하고, <u>${worst.t}</u> 구간은 예약/설명/기록을 코칭하세요.`);
+            addLine(`치료사별 <b>2회 이상 치료 비율 편차</b>가 큽니다(<b>${fmtPct(maxC2)}</b> vs <b>${fmtPct(minC2)}</b>). <u>${best.t}</u>의 초진 운영을 좋은 사례로 참고하고, <u>${worst.t}</u> 구간은 예약/설명/기록을 코칭하세요.`);
           }
         }
 
-        // 연령대별 병목(2회차 전환율 최저 연령대)
+        // 연령대별 병목(2회 이상 치료 비율 최저 연령대)
         const aStats = ageCols.map(a=>{
           const ps = cohort.filter(p => (p.ageBucket||'미상') === a);
           const nn = ps.length;
