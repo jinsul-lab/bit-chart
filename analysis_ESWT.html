@@ -161,6 +161,9 @@
 <div id="mainContent" class="hidden">
       <div class="cards-grid">
       <div class="card"><h2>표 1. 부위별 치료 횟수</h2><div style="overflow-x:auto;"><table id="table1"></table></div></div>
+
+      <div class="card"><h2>표 1-1. 치료사별·부위별 치료 횟수</h2><div style="overflow-x:auto;"><table id="table1a"></table></div></div>
+      <div class="card"><h2>표 1-2. 치료사별·부위별 치료 비율</h2><div style="overflow-x:auto;"><table id="table1b"></table></div></div>
       <div class="card"><h2>표 2. 신환 상세 통계 및 재진 전환율</h2><div style="overflow-x:auto;"><table id="table2"></table></div></div>
       <div class="card"><h2>표 3. 연령대별 충격파 치료 건수</h2><div style="overflow-x:auto;"><table id="table3"></table></div></div>
       <div class="card"><h2>표 4. 연령대별 성별 치료 비중</h2><div style="overflow-x:auto;"><table id="table4"></table></div></div>
@@ -867,6 +870,48 @@ function buildPriceButtons(){
       setHtml(tableId, head + body);
     }
 
+    // 치료사별 분포 등에서 '비율(%)' 매트릭스 렌더링 (행 기준 비율 + 전체 합계)
+    function renderMatrixRowPct(tableId, rowLabels, colLabels, getCount){
+      const head = `<thead><tr><th style="width:110px;">구분</th>` +
+        colLabels.map(c=>`<th>${c}</th>`).join('') +
+        `<th class="total-col">합계</th></tr></thead>`;
+
+      const colTotals = new Array(colLabels.length).fill(0);
+      let grand = 0;
+
+      // 1) 먼저 count를 모아 전체 합계를 계산
+      const rowSums = new Map();
+      rowLabels.forEach(rLabel=>{
+        let rs = 0;
+        colLabels.forEach((cLabel, ci)=>{
+          const v = Number(getCount(rLabel, cLabel) || 0);
+          rs += v;
+          colTotals[ci] += v;
+        });
+        rowSums.set(rLabel, rs);
+        grand += rs;
+      });
+
+      // 2) 렌더 (행 기준 %)
+      let body = `<tbody>`;
+      rowLabels.forEach(rLabel=>{
+        const rs = rowSums.get(rLabel) || 0;
+        let cells = '';
+        colLabels.forEach((cLabel, ci)=>{
+          const v = Number(getCount(rLabel, cLabel) || 0);
+          cells += `<td>${rs>0 ? fmtPct(v/rs) : '-'}</td>`;
+        });
+        body += `<tr><td>${rLabel}</td>${cells}<td class="total-col">${rs>0 ? '100.0%' : '-'}</td></tr>`;
+      });
+
+      // 3) 전체 합계(열 기준 %)
+      const totCells = colTotals.map(v=>`<td>${grand>0 ? fmtPct(v/grand) : '-'}</td>`).join('');
+      body += `<tr class="total-row"><td>총 합계</td>${totCells}<td class="total-col">${grand>0 ? '100.0%' : '-'}</td></tr>`;
+      body += `</tbody>`;
+
+      setHtml(tableId, head + body);
+    }
+
 
     function renderMatrixAvg(tableId, rowLabels, colLabels, getStat){
       // rowLabels: rows, colLabels: cols
@@ -1015,6 +1060,40 @@ function buildPriceButtons(){
 
 const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       renderMatrix('table1', PARTS, ageCols, (pPart, a) => partAge.get(pPart + '||' + a) || 0);
+
+      // 표 1-1/1-2: 치료사별·부위별 치료 횟수/비율 (충격파 방문 기준)
+      // - 동일 방문일에 같은 부위가 여러 행으로 출력되어도 1회로 처리 (방문당 부위 중복 제거)
+      const therPart = new Map(); // key: therapist||part => count
+      const therSet = new Set();
+
+      cohort.forEach(p=>{
+        const byTherVisit = new Map(); // key: therapist||visitKey => rows
+        p.rows.filter(r => isShock(r.typeRaw)).forEach(r=>{
+          const t = (toStr(r.therapist).trim() || '미상');
+          const vk = (r.visitKey===null || r.visitKey===undefined) ? 'noDate' : String(r.visitKey);
+          const k = t + '||' + vk;
+          if(!byTherVisit.has(k)) byTherVisit.set(k, []);
+          byTherVisit.get(k).push(r);
+        });
+
+        for(const [k, rows] of byTherVisit.entries()){
+          const t = k.split('||')[0];
+          const parts = [];
+          rows.forEach(rr=>{
+            extractParts(rr.part).forEach(pt=>{ if(!parts.includes(pt)) parts.push(pt); });
+          });
+          parts.forEach(pt=>{
+            const kk = t + '||' + pt;
+            therPart.set(kk, (therPart.get(kk)||0) + 1);
+          });
+          therSet.add(t);
+        }
+      });
+
+      const therRowsPart = Array.from(therSet).sort((a,b)=>a.localeCompare(b,'ko'));
+      renderMatrix('table1a', therRowsPart, PARTS, (t, part)=> therPart.get(t + '||' + part) || 0);
+      renderMatrixRowPct('table1b', therRowsPart, PARTS, (t, part)=> therPart.get(t + '||' + part) || 0);
+
 
       
       // 표 2: 요약 핵심지표
