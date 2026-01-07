@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>JINSUL - 전략 분석 시스템 (v 0.0.4.7)</title>
+  <title>JINSUL - 전략 분석 시스템 (v 0.0.4.8)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -80,7 +80,7 @@
 </style>
 </head>
 <body>
-  <div class="version-tag">v 0.0.4.7</div>
+  <div class="version-tag">v 0.0.4.8</div>
   <img src="jinsul-logo.png" class="watermark" alt="bg" />
   <header>
     <img src="jinsul-logo.png" alt="logo" />
@@ -164,10 +164,10 @@
 
       <div class="card"><h2>표 1-1. 치료사별·부위별 치료 횟수</h2><div style="overflow-x:auto;"><table id="table1a"></table></div></div>
       <div class="card"><h2>표 1-2. 치료사별·부위별 치료 비율</h2><div style="overflow-x:auto;"><table id="table1b"></table></div></div>
-      <div class="card"><h2>표 1-3. Free → 유료 전환 (기타→신환/재진) (전체)</h2><div style="overflow-x:auto;"><table id="table1c"></table></div></div>
-      <div class="card"><h2>표 1-4. Free → 유료 전환 (연령대별)</h2><div style="overflow-x:auto;"><table id="table1d"></table></div></div>
-      <div class="card"><h2>표 1-5. Free → 유료 전환 (부위별)</h2><div style="overflow-x:auto;"><table id="table1e"></table></div></div>
-      <div class="card"><h2>표 1-6. Free → 유료 전환 (치료사별)</h2><div style="overflow-x:auto;"><table id="table1f"></table></div></div>
+      <div class="card free-card-main"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h2 style="margin:0;">표 1-3. Free(기타여부) → 유료 전환 (기타→신환/재진) (전체)</h2><button id="freeToggleBtn" class="price-btn" type="button">펼치기</button></div><div id="freeTablesMain" style="overflow-x:auto;margin-top:8px;"><table id="table1c"></table></div></div>
+      <div class="card free-card-extra"><h2>표 1-4. Free(기타여부) → 유료 전환 (연령대별)</h2><div style="overflow-x:auto;"><table id="table1d"></table></div></div>
+      <div class="card free-card-extra"><h2>표 1-5. Free(기타여부) → 유료 전환 (부위별)</h2><div style="overflow-x:auto;"><table id="table1e"></table></div></div>
+      <div class="card free-card-extra"><h2>표 1-6. Free(기타여부) → 유료 전환 (치료사별)</h2><div style="overflow-x:auto;"><table id="table1f"></table></div></div>
       <div class="card"><h2>표 1-7. 치료사별·부위별 3회차 도달율</h2><div style="overflow-x:auto;"><table id="table1g"></table></div></div>
 
       <div class="card"><h2>표 2. 신환 상세 통계 및 재진 전환율</h2><div style="overflow-x:auto;"><table id="table2"></table></div></div>
@@ -211,6 +211,9 @@
 
   <script>
 
+    let freeExpanded = false; // (declared early to avoid TDZ during init)
+
+
 
     // -----------------------------
     // 0) UI 이벤트
@@ -242,6 +245,15 @@ function getDroppedFile(dt){
     
     // 클릭 업로드 보장
     dz.addEventListener('click', () => fi && fi.click());
+
+    // Free(기타여부) 표 펼치기/접기
+    const freeToggleBtn = document.getElementById('freeToggleBtn');
+    if(freeToggleBtn){
+      freeToggleBtn.addEventListener('click', () => setFreeSectionExpanded(!freeExpanded));
+    }
+    // 기본은 접기
+    setFreeSectionExpanded(false);
+
 // 표 13 펼치기/접기
     const toggle13Btn = document.getElementById('toggle13');
     const table13Wrap = document.getElementById('table13Wrap');
@@ -266,7 +278,9 @@ function getDroppedFile(dt){
     let selPVal = -1;     // selected entry price
     let entryPriceList = [];
     let amountListAll = [];
+    let amountListFree = [];
     let exclAmtSet = new Set();
+    let exclAmtFreeSet = new Set();
 
     const AGE_BUCKETS = ['10대','20대','30대','40대','50대','60대','70대 이상','미상'];
     const GENDERS = ['남','여','미상'];
@@ -760,7 +774,17 @@ buildData();
           .filter(v=>isFinite(v) && v>0)
       )).sort((a,b)=>a-b);
 
+      // 기타여부(Free) 시작 신환의 진입금액 후보
+      amountListFree = Array.from(new Set(
+        patientsAll.filter(p=>p.isNew && p.freeStart)
+          .map(p=>p.entryPrice)
+          .filter(v=>isFinite(v) && v>0)
+      )).sort((a,b)=>a-b);
+
       exclAmtSet = new Set();
+      exclAmtFreeSet = new Set();
+      const hasFreeStart = patientsAll.some(p=>p.isNew && p.freeStart);
+      setFreeSectionExpanded(hasFreeStart);
       rebuildDerived();
 }
 
@@ -898,9 +922,22 @@ const allKeys = (baseKey===null) ? allKeysRaw : allKeysRaw.filter(k=>k>=baseKey)
     }
 
     function activePatients(){
-  // 제외된 치료 금액(첫 충격파 치료금액)으로 시작한 신환은 분석에서 제외
-  if(!exclAmtSet || !exclAmtSet.size) return patientsAll.slice();
-  return patientsAll.filter(p => !(p.isNew && isFinite(p.entryPrice) && exclAmtSet.has(p.entryPrice)));
+  // 제외된 치료 금액(첫 치료금액)으로 시작한 신환은 분석에서 제외
+  const hasNormal = (exclAmtSet && exclAmtSet.size);
+  const hasFree = (exclAmtFreeSet && exclAmtFreeSet.size);
+  if(!hasNormal && !hasFree) return patientsAll.slice();
+
+  return patientsAll.filter(p => {
+    if(!p.isNew || !isFinite(p.entryPrice)) return true;
+
+    // 일반 금액 제외
+    if(hasNormal && exclAmtSet.has(p.entryPrice)) return false;
+
+    // Free(기타여부) 시작 금액 제외
+    if(hasFree && p.freeStart && exclAmtFreeSet.has(p.entryPrice)) return false;
+
+    return true;
+  });
 }
 
 function rebuildDerived(){
@@ -947,13 +984,14 @@ function buildPriceButtons(){
       if(!box) return;
       box.innerHTML = '';
 
-      const mkBtn = (label, val) => {
+      const mkBtn = (label, val, isFree) => {
+        const set = isFree ? exclAmtFreeSet : exclAmtSet;
         const b = document.createElement('button');
-        b.className = 'price-btn excl-btn' + (exclAmtSet.has(val) ? ' active' : '');
+        b.className = 'price-btn excl-btn' + (set.has(val) ? ' active' : '');
         b.textContent = label;
         b.onclick = () => {
-          if(exclAmtSet.has(val)) exclAmtSet.delete(val);
-          else exclAmtSet.add(val);
+          if(set.has(val)) set.delete(val);
+          else set.add(val);
 
           rebuildDerived();
           buildPriceButtons();
@@ -963,25 +1001,52 @@ function buildPriceButtons(){
         return b;
       };
 
-      // 금액 후보(원 데이터 기준) + 현재 제외값 union
-      const union = Array.from(new Set([...(amountListAll||[]), ...Array.from(exclAmtSet||[])]))
+      // 일반 금액 후보(원 데이터 기준) + 현재 제외값 union
+      const unionNormal = Array.from(new Set([...(amountListAll||[]), ...Array.from(exclAmtSet||[])]))
         .filter(v=>isFinite(v) && v>0)
         .sort((a,b)=>a-b);
 
-      union.forEach(v => box.appendChild(mkBtn(v.toLocaleString() + '원', v)));
+      unionNormal.forEach(v => box.appendChild(mkBtn(v.toLocaleString() + '원', v, false)));
+
+      // 기타여부 금액 후보 + 현재 제외값 union
+      const unionFree = Array.from(new Set([...(amountListFree||[]), ...Array.from(exclAmtFreeSet||[])]))
+        .filter(v=>isFinite(v) && v>0)
+        .sort((a,b)=>a-b);
+
+      unionFree.forEach(v => box.appendChild(mkBtn(v.toLocaleString() + '원(기타)', v, true)));
 
       // 초기화
       const clearBtn = document.createElement('button');
-      clearBtn.className = 'price-btn excl-btn' + (exclAmtSet.size ? '' : ' active');
+      const anyActive = (exclAmtSet.size || exclAmtFreeSet.size);
+      clearBtn.className = 'price-btn excl-btn' + (anyActive ? '' : ' active');
       clearBtn.textContent = '제외 초기화';
       clearBtn.onclick = () => {
         exclAmtSet = new Set();
+        exclAmtFreeSet = new Set();
         rebuildDerived();
         buildPriceButtons();
         buildExcludeButtons();
         renderAll();
       };
       box.appendChild(clearBtn);
+    }
+
+
+    // -----------------------------
+    // Free(기타여부) 표 펼치기/접기
+    // -----------------------------
+    function setFreeSectionExpanded(expanded){
+      freeExpanded = !!expanded;
+
+      const btn = document.getElementById('freeToggleBtn');
+      const main = document.getElementById('freeTablesMain');
+
+      if(btn) btn.textContent = freeExpanded ? '접기' : '펼치기';
+      if(main) main.style.display = freeExpanded ? '' : 'none';
+
+      document.querySelectorAll('.free-card-extra').forEach(el => {
+        el.style.display = freeExpanded ? '' : 'none';
+      });
     }
 
 
@@ -1337,7 +1402,7 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       renderMatrixRowPct('table1b', therRowsPart, PARTS, (t, part)=> therPart.get(t + '||' + part) || 0);
 
 
-      // 표 1-3~1-6: Free → 유료 전환 (기타→신환/재진)
+      // 표 1-3~1-6: Free(기타여부) → 유료 전환 (기타→신환/재진)
       const actAll = activePatients();
       const freeAll2 = actAll.filter(p => p.freeStart);
       const freeN2 = freeAll2.length;
@@ -1354,13 +1419,13 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
 
       renderKeyValueTable('table1c', [
         {k:'무료(기타여부) 시작', v: `${fmtInt(freeN2)}명`},
-        {k:'Free → 유료 전환율', v: freeN2 ? `${fmtPct(freeRate2)}` : '0%'},
+        {k:'Free(기타여부) → 유료 전환율', v: freeN2 ? `${fmtPct(freeRate2)}` : '0%'},
         {k:'전환 인원', v: `${fmtInt(freeConvN2)}명`},
         {k:'전환 유형', v: `신환 ${fmtInt(freeToNewN2)}명 / 재진 ${fmtInt(freeToReN2)}명`},
         {k:'전환까지 소요일(방문일)', v: freeDaysArr2.length ? `평균 ${freeAvgDays2}일 · 중앙 ${freeMedDays2}일 (최소 ${freeMinDays2}~최대 ${freeMaxDays2})` : '-'}
       ]);
 
-      // 연령대별 Free → 유료 전환
+      // 연령대별 Free(기타여부) → 유료 전환
       const freeAgeRows = [];
       AGE_BUCKETS.forEach(a=>{
         const ps = freeAll2.filter(p => (p.ageBucket||'미상')===a);
@@ -1380,7 +1445,7 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
         {k:'전환율',l:'전환율'}
       ], freeAgeRows);
 
-      // 부위별 Free → 유료 전환 (환자 1명이 여러 부위에 포함될 수 있음)
+      // 부위별 Free(기타여부) → 유료 전환 (환자 1명이 여러 부위에 포함될 수 있음)
       const freePartMap = new Map(PARTS.map(p=>[p,{free:0, conv:0}]));
       const addPart = (part, isConv)=>{
         const k = PARTS.includes(part) ? part : (part==='(미기입)' ? '(미기입)' : '기타');
@@ -1411,7 +1476,7 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
         {k:'전환율',l:'전환율'}
       ], freePartRows);
 
-      // 치료사별 Free → 유료 전환
+      // 치료사별 Free(기타여부) → 유료 전환
       const freeTherMap = new Map();
       freeAll2.forEach(p=>{
         const t = (p.therapist||'미기입');
@@ -1472,19 +1537,19 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       // 표 2: 요약 핵심지표
       const injRate = n ? comboN/n : 0;
       const selTxt = (selPVal===-1 ? '전체' : (selPVal.toLocaleString()+'원'));
-      const exclTxt = (exclAmtSet && exclAmtSet.size)
-        ? (' / 제외: ' + Array.from(exclAmtSet).sort((a,b)=>a-b).map(v=>v.toLocaleString()+'원').join(', '))
-        : '';
+      const exclTxt = (() => {
+        const parts = [];
+        if(exclAmtSet && exclAmtSet.size){
+          parts.push(...Array.from(exclAmtSet).sort((a,b)=>a-b).map(v=>v.toLocaleString()+'원'));
+        }
+        if(exclAmtFreeSet && exclAmtFreeSet.size){
+          parts.push(...Array.from(exclAmtFreeSet).sort((a,b)=>a-b).map(v=>v.toLocaleString()+'원(기타)'));
+        }
+        return parts.length ? (' / 제외: ' + parts.join(', ')) : '';
+      })();
 
       renderKeyValueTable('table2', [
-        {k:'신환 수(치료 금액)', v: `${fmtInt(n)}명 / ${selTxt}${exclTxt}`},
-{k:'1회만', v: n ? `${fmtInt(d1)}명 (${fmtPct(d1/n)})` : '0명 (0%)'},
-        {k:'2회만', v: n ? `${fmtInt(d2)}명 (${fmtPct(d2/n)})` : '0명 (0%)'},
-        {k:'3회만', v: n ? `${fmtInt(d3)}명 (${fmtPct(d3/n)})` : '0명 (0%)'},
-        {k:'4회만', v: n ? `${fmtInt(d4)}명 (${fmtPct(d4/n)})` : '0명 (0%)'},
-        {k:'5회 이상', v: n ? `${fmtInt(d5p)}명 (${fmtPct(d5p/n)})` : '0명 (0%)'},
-
-        {k:'2회차 전환율', v: n ? `${fmtPct(convN/n)} (${fmtInt(convN)}/${fmtInt(n)})` : '0% (0/0)'},
+        {k:'신환 수(치료 금액)', v: `${fmtInt(n)}명 / ${selTxt}${exclTxt}`},        {k:'2회차 전환율', v: n ? `${fmtPct(convN/n)} (${fmtInt(convN)}/${fmtInt(n)})` : '0% (0/0)'},
         {k:'3회차 도달율', v: n ? `${fmtPct(r3N/n)} (${fmtInt(r3N)}/${fmtInt(n)})` : '0% (0/0)'},
         {k:'주사치료 병행 비율', v: n ? fmtPct(injRate) : '0%'},
         {k:'평균 치료 횟수(충격파)', v: avgV.toFixed(2)},
