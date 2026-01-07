@@ -80,7 +80,7 @@
 </style>
 </head>
 <body>
-  <div class="version-tag">v 0.0.4.8</div>
+  <div class="version-tag">v0.0.4.10</div>
   <img src="jinsul-logo.png" class="watermark" alt="bg" />
   <header>
     <img src="jinsul-logo.png" alt="logo" />
@@ -769,14 +769,14 @@ buildData();
 
       // 기타여부(Free) 시작 신환의 진입금액 후보
       amountListFree = Array.from(new Set(
-        patientsAll.filter(p=>p.isNew && p.freeStart)
-          .map(p=>p.entryPrice)
+        patientsAll.filter(p=>p.freeStart)
+          .map(p=>p.freeEntryPrice)
           .filter(v=>isFinite(v) && v>0)
       )).sort((a,b)=>a-b);
 
       exclAmtSet = new Set();
       exclAmtFreeSet = new Set();
-      const hasFreeStart = patientsAll.some(p=>p.isNew && p.freeStart);
+      const hasFreeStart = patientsAll.some(p=>p.freeStart);
       setFreeSectionExpanded(hasFreeStart);
       rebuildDerived();
 }
@@ -817,9 +817,9 @@ buildData();
           for(const r of rowsSortedByDay){
             if(!isFinite(r.visitKey) || r.visitKey <= freeStartKey) continue;
             const nf = toStr(r.newFlag);
-            if(nf.includes('신환') || nf.includes('재진')){
+            if(nf.includes('신환')){
               freeConverted = true;
-              freeConversionTo = nf.includes('신환') ? '신환' : '재진';
+              freeConversionTo = '신환';
               freeConversionKey = r.visitKey;
               break;
             }
@@ -829,6 +829,19 @@ buildData();
         const freeDaysToPaid = (freeConverted && freeConversionKey!==null && freeStartKey!==null)
           ? Math.round((freeConversionKey - freeStartKey) / 86400000)
           : null;
+
+        // Free(기타여부) 시작 금액(해당 방문일의 금액) — (기타) 금액 후보/제외용
+        let freeEntry = null;
+        if(freeStart && freeStartKey!==null){
+          const shRowsF = rows.filter(r => r.visitKey===freeStartKey && isShock(r.typeRaw));
+          const amF1 = shRowsF.map(r=>r.amount).filter(v=>isFinite(v));
+          freeEntry = amF1.length ? Math.max(...amF1) : null;
+          if(freeEntry===null){
+            const allRowsF = rows.filter(r => r.visitKey===freeStartKey);
+            const amF2 = allRowsF.map(r=>r.amount).filter(v=>isFinite(v));
+            freeEntry = amF2.length ? Math.max(...amF2) : null;
+          }
+        }
 
         // ✅ 엑셀 기준 신환 귀속:
         // - 치료사: '신환'으로 표시된 행의 치료사(섹션)로 귀속 (없으면 첫 행 치료사)
@@ -899,6 +912,7 @@ const allKeys = (baseKey===null) ? allKeysRaw : allKeysRaw.filter(k=>k>=baseKey)
           freeConverted: freeConverted,
           freeConversionTo: freeConversionTo,
           freeDaysToPaid: freeDaysToPaid,
+          freeEntryPrice: freeEntry,
           entryPrice: entry,
           entryRoom: entryRoom,
           visitCountAll: visitKeysAll.size,
@@ -914,21 +928,27 @@ const allKeys = (baseKey===null) ? allKeysRaw : allKeysRaw.filter(k=>k>=baseKey)
       return pats;
     }
 
-    function activePatients(){
-  // 제외된 치료 금액(첫 치료금액)으로 시작한 신환은 분석에서 제외
-  const hasNormal = (exclAmtSet && exclAmtSet.size);
+    function patientsAfterFreeExclusion(){
   const hasFree = (exclAmtFreeSet && exclAmtFreeSet.size);
-  if(!hasNormal && !hasFree) return patientsAll.slice();
+  if(!hasFree) return patientsAll.slice();
 
   return patientsAll.filter(p => {
+    if(p.freeStart && isFinite(p.freeEntryPrice) && exclAmtFreeSet.has(p.freeEntryPrice)) return false;
+    return true;
+  });
+}
+
+function activePatients(){
+  // Free(기타여부) 시작 금액 제외는 전체에 적용
+  const base = patientsAfterFreeExclusion();
+
+  // 일반 금액(유료 진입금액) 제외는 유료(신환) 분석에만 적용
+  const hasNormal = (exclAmtSet && exclAmtSet.size);
+  if(!hasNormal) return base.slice();
+
+  return base.filter(p => {
     if(!p.isNew || !isFinite(p.entryPrice)) return true;
-
-    // 일반 금액 제외
-    if(hasNormal && exclAmtSet.has(p.entryPrice)) return false;
-
-    // Free(기타여부) 시작 금액 제외
-    if(hasFree && p.freeStart && exclAmtFreeSet.has(p.entryPrice)) return false;
-
+    if(exclAmtSet.has(p.entryPrice)) return false;
     return true;
   });
 }
@@ -1315,7 +1335,7 @@ const comboN = cohort.filter(p => p.hasInjection).length;
 
       
             // 표 1-1~1-3: Free(기타여부) → 유료 전환 (기타→신환/재진)
-      const actAll = activePatients();
+      const actAll = patientsAfterFreeExclusion();
       const freeAll2 = actAll.filter(p => p.freeStart);
       const freeN2 = freeAll2.length;
       const freeConv2 = freeAll2.filter(p => p.freeConverted);
