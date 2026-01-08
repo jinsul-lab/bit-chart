@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>JINSUL - 전략 분석 시스템 (도수치료) (v 0.0.4.8)</title>
+  <title>JINSUL - 전략 분석 시스템 (도수치료) (v 0.0.5.2)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -80,7 +80,7 @@
 </style>
 </head>
 <body>
-  <div class="version-tag">v0.0.4.10</div>
+  <div class="version-tag">v0.0.5.2</div>
   <img src="jinsul-logo.png" class="watermark" alt="bg" />
   <header>
     <img src="jinsul-logo.png" alt="logo" />
@@ -558,23 +558,7 @@ function num(v){
     }
 
     
-function mapPartSingle(partRaw){
-  const s0 = toStr(partRaw).trim();
-  if(!s0) return null;
-  const s = s0.replace(/\s+/g,'').replace(/[，]/g,'').replace(/,+/g,'').replace(/[.]+$/,'');
-  const has = (w)=>s.includes(w);
-  // 손가락/발가락 포함 규칙 반영
-  if(has('경추') || has('목')) return '목';
-  if(has('흉추') || (has('등') && !has('허리'))) return '등';
-  if(has('요추') || has('허리')) return '허리';
-  if(has('어깨') || has('견')) return '어깨';
-  if(has('팔꿈치') || has('주관절')) return '팔꿈치';
-  if(has('손가락') || has('수지') || has('손목') || has('손')) return '손목/손';
-  if(has('고관절') || has('골반') || has('둔부') || has('엉덩') || has('서혜')) return '골반/고관절';
-  if(has('무릎') || has('슬관절')) return '무릎';
-  if(has('발가락') || has('족지') || has('발목') || has('발')) return '발목/발';
-  return '기타';
-}
+function mapPartSingle(partRaw){ const s=toStr(partRaw).trim().replace(/\s+/g,'').replace(/[，]/g,'').replace(/,+/g,'').replace(/[.]+$/,''); const has=(w)=>s.includes(w); if(has('손가락')||has('수지')||has('손목')||has('손')) return '손목/손'; if(has('발가락')||has('족지')||has('발목')||has('발')) return '발목/발'; if(has('경추')||has('목')) return '목'; if(has('흉추')||(has('등')&&!has('허리'))) return '등'; if(has('요추')||has('허리')) return '허리'; if(has('어깨')||has('견')) return '어깨'; if(has('팔꿈치')||has('주관절')) return '팔꿈치'; if(has('고관절')||has('골반')||has('둔부')||has('엉덩')||has('서혜')) return '골반/고관절'; if(has('무릎')||has('슬관절')) return '무릎'; return '기타'; }
 
 function extractParts(partRaw){
   const s0 = toStr(partRaw).trim();
@@ -1415,9 +1399,9 @@ const comboN = cohort.filter(p => p.hasInjection).length;
         {k:'신환 수(치료 금액)', v: `${fmtInt(n)}명 / ${selTxt}${exclTxt}`},        {k:'2회차 전환율', v: n ? `${fmtPct(convN/n)} (${fmtInt(convN)}/${fmtInt(n)})` : '0% (0/0)'},
         {k:'3회차 도달율', v: n ? `${fmtPct(r3N/n)} (${fmtInt(r3N)}/${fmtInt(n)})` : '0% (0/0)'},
         {k:'주사치료 병행 비율', v: n ? fmtPct(injRate) : '0%'},
-        {k:'평균 치료 횟수(충격파)', v: avgV.toFixed(2)},
-        {k:'중간값 치료 횟수(충격파)', v: (medV>=5 ? '5회 이상' : String(medV))},
-        {k:'최빈 치료 횟수(충격파)', v: (modeV.modes.length ? Array.from(new Set(modeV.modes.map(v=> (v>=5 ? '5회 이상' : String(v))))).join(', ') : '-')},
+        {k:'평균 치료 횟수', v: avgV.toFixed(2)},
+        {k:'중간값 치료 횟수', v: (medV>=5 ? '5회 이상' : String(medV))},
+        {k:'최빈 치료 횟수', v: (modeV.modes.length ? Array.from(new Set(modeV.modes.map(v=> (v>=5 ? '5회 이상' : String(v))))).join(', ') : '-')},
         {k:'7일 내 재방문율', v: n ? fmtPct(r7N/n) : '0%'},
         {k:'14일 내 재방문율', v: n ? fmtPct(r14N/n) : '0%'}]);
       // 표 3: 연령대별 (신환 수 / 재방문 / 평균 치료 횟수)
