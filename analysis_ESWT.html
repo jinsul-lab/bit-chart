@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>JINSUL - 전략 분석 시스템 (v 0.0.5.3)</title>
+  <title>JINSUL - 전략 분석 시스템 (v 0.0.5.4)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -80,7 +80,7 @@
 </style>
 </head>
 <body>
-  <div class="version-tag">v0.0.5.3</div>
+  <div class="version-tag">v0.0.5.4</div>
   <img src="jinsul-logo.png" class="watermark" alt="bg" />
   <header>
     <img src="jinsul-logo.png" alt="logo" />
@@ -175,11 +175,9 @@
       <div class="card"><h2>표 2. 신환 상세 통계 및 재진 전환율</h2><div style="overflow-x:auto;"><table id="table2"></table></div></div>
 <div class="card"><h2>표 3. 연령대별 충격파 치료 건수 (성별 비중 포함)</h2><div style="overflow-x:auto;"><table id="table3"></table></div></div>
 <div class="card"><h2>표 5. 충격파 치료 횟수 분포</h2><div style="overflow-x:auto;"><table id="table5"></table></div></div>
-      <div class="card"><h2>표 6. 연령대별 치료 횟수 인원 분포</h2><div style="overflow-x:auto;"><table id="table6"></table></div></div>
-      <div class="card"><h2>표 6-1. 연령대별 회차 비율</h2><div style="overflow-x:auto;"><table id="table6_1"></table></div></div>
-      <div class="card"><h2>표 6-2. 연령대별 회차 도달률</h2><div style="overflow-x:auto;"><table id="table6_2"></table></div></div>
-
-      <div class="card"><h2>표 7. 치료 금액 구간별 핵심지표</h2><div style="overflow-x:auto;"><table id="table7"></table></div></div>
+      <div class="card"><h2>표 6. 연령대별 치료 횟수 및 비율</h2><div style="overflow-x:auto;"><table id="table6"></table></div></div>
+      <div class="card"><h2>표 6-1. 연령대별 회차 도달률</h2><div style="overflow-x:auto;"><table id="table6_1"></table></div></div>
+<div class="card"><h2>표 7. 치료 금액 구간별 핵심지표</h2><div style="overflow-x:auto;"><table id="table7"></table></div></div>
       <div class="card"><h2>표 8. 치료사별 핵심지표</h2><div style="overflow-x:auto;"><table id="table8"></table></div></div>
       <div class="card"><h2>표 8-1. 충격파 치료사별 신환/재진 예약 비율(O/X)</h2><div style="overflow-x:auto;"><table id="table8r"></table></div></div>
       <div class="card"><h2>표 9. 첫 치료 → 2회차 재방문 주기</h2><div style="overflow-x:auto;"><table id="table9"></table></div></div>
@@ -598,7 +596,22 @@ function extractParts(partRaw){
 function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
     function fmtPct0(x){ return (isFinite(x) ? Math.round(x*100) : 0) + '%'; }
 function fmtInt(x){ return (isFinite(x) ? Math.round(x).toLocaleString() : '0'); }
-    function median(arr){
+    
+    // 0 값(지표/표)을 '-'로 표시 (0/82 같은 분수는 유지)
+    function replaceZeroIndicators(){
+      const root = document.getElementById('dashArea') || document.body;
+      const nodes = root.querySelectorAll('td, th, .kpi-value, .stat, .metric, .value, .big, .big-number');
+      nodes.forEach(el=>{
+        const t0 = (el.textContent||'').trim();
+        if(!t0) return;
+        if(t0.includes('/')) return; // 분수 표기 유지
+        // 정확히 0 계열만 치환
+        if(/^0(\.0+)?$/.test(t0)) { el.textContent='-'; return; }
+        if(/^0(\.0+)?%$/.test(t0)) { el.textContent='-'; return; }
+        if(/^0(\.0+)?(명|원|회|일)$/.test(t0)) { el.textContent='-'; return; }
+      });
+    }
+function median(arr){
       const a = arr.slice().sort((x,y)=>x-y);
       if(!a.length) return 0;
       const mid = Math.floor(a.length/2);
@@ -641,6 +654,7 @@ buildData();
         buildPriceButtons();
         buildExcludeButtons();
         renderAll();
+      replaceZeroIndicators();
         };
       r.readAsArrayBuffer(file);
     }
@@ -677,7 +691,8 @@ buildData();
         const name = toStr(r['이름']).trim();
         if(name){
           ctx.name = name;
-          const c = toStr(r['환자 차트']).trim();
+          const cRaw = (r['환자 차트']!==undefined ? r['환자 차트'] : (r['환자차트']!==undefined ? r['환자차트'] : r['차트']));
+          const c = toStr(cRaw).replace(/[^0-9]/g,'').trim();
           if(c) ctx.chart = c;
           const sa = toStr(r['성별/연령']).trim();
           if(sa) ctx.sexAge = sa;
@@ -719,7 +734,9 @@ buildData();
         const sexAge = toStr(r['성별/연령']).trim() || ctx.sexAge;
         const newFlag = toStr(r['신/재']).trim() || ctx.newFlag;
 
-        const chart = toStr(r['환자 차트']).trim() || ctx.chart;
+        const chartRaw2 = (r['환자 차트']!==undefined ? r['환자 차트'] : (r['환자차트']!==undefined ? r['환자차트'] : r['차트']));
+
+        const chart = toStr(chartRaw2).replace(/[^0-9]/g,'').trim() || ctx.chart;
 
         const reserveRaw = toStr(r['예약']).trim();
         const reserveVal = (()=>{
@@ -974,6 +991,7 @@ function buildPriceButtons(){
           document.querySelectorAll('.sel-btn').forEach(x => x.classList.remove('active'));
           b.classList.add('active');
           renderAll();
+      replaceZeroIndicators();
         };
         return b;
       };
@@ -1002,6 +1020,7 @@ function buildPriceButtons(){
           buildPriceButtons();
           buildExcludeButtons();
           renderAll();
+      replaceZeroIndicators();
         };
         return b;
       };
@@ -1032,6 +1051,7 @@ function buildPriceButtons(){
         buildPriceButtons();
         buildExcludeButtons();
         renderAll();
+      replaceZeroIndicators();
       };
       box.appendChild(clearBtn);
     }
@@ -1855,7 +1875,7 @@ renderMatrix('table5', visitBins, ageCols, (bin, age)=> (keepMat.get(bin)?.get(a
         const a = ageCols.includes(p.ageBucket) ? p.ageBucket : (ageCols.includes('미상') ? '미상' : ageCols[0]);
         ageTotals.set(a, (ageTotals.get(a)||0) + 1);
       });
-      renderMatrixCountPctTotals('table6_1', ageCols, rounds, (age, round)=> (distMat.get(age)?.get(round)) || 0, ageTotals);
+      renderMatrixCountPctTotals('table6', ageCols, rounds, (age, round)=> (distMat.get(age)?.get(round)) || 0, ageTotals);
 
       // 표 6-2: 연령대별 회차 도달률 (누적 도달)
       const reachCols2 = ['2회 이상','3회 이상','4회 이상','5회 이상'];
@@ -1872,7 +1892,7 @@ renderMatrix('table5', visitBins, ageCols, (bin, age)=> (keepMat.get(bin)?.get(a
         if(c>=4) reachMat2.get(a).set('4회 이상', (reachMat2.get(a).get('4회 이상')||0) + 1);
         if(c>=5) reachMat2.get(a).set('5회 이상', (reachMat2.get(a).get('5회 이상')||0) + 1);
       });
-      renderMatrixCountPctTotals('table6_2', ageCols, reachCols2, (age, col)=> (reachMat2.get(age)?.get(col)) || 0, ageTotals);
+      renderMatrixCountPctTotals('table6_1', ageCols, reachCols2, (age, col)=> (reachMat2.get(age)?.get(col)) || 0, ageTotals);
 
 
       // 표 7: 치료 금액 구간별 핵심지표
