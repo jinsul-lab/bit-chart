@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>JINSUL - 전략 분석 시스템 (도수치료) (v 0.0.5.4)</title>
+  <title>JINSUL - 전략 분석 시스템 (도수치료) (v 0.0.5.6)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -80,7 +80,7 @@
 </style>
 </head>
 <body>
-  <div class="version-tag">v0.0.5.4</div>
+  <div class="version-tag">v0.0.5.6</div>
   <img src="jinsul-logo.png" class="watermark" alt="bg" />
   <header>
     <img src="jinsul-logo.png" alt="logo" />
@@ -169,10 +169,11 @@
 <div class="card"><h2>표 3. 연령대별 도수치료 치료 건수 (성별 비중 포함)</h2><div style="overflow-x:auto;"><table id="table3"></table></div></div>
 <div class="card"><h2>표 5. 도수치료 치료 횟수 분포</h2><div style="overflow-x:auto;"><table id="table5"></table></div></div>
       <div class="card"><h2>표 6. 연령대별 치료 횟수 및 비율</h2><div style="overflow-x:auto;"><table id="table6"></table></div></div>
-      <div class="card"><h2>표 6-1. 연령대별 회차 도달률</h2><div style="overflow-x:auto;"><table id="table6_1"></table></div></div>
+      <div class="card"><h2>표 6-1. 연령대별 회차 도달률 (누적)</h2><div style="overflow-x:auto;"><table id="table6_1"></table></div></div>
 <div class="card"><h2>표 7. 치료 금액 구간별 핵심지표</h2><div style="overflow-x:auto;"><table id="table7"></table></div></div>
       <div class="card"><h2>표 8. 치료사별 핵심지표</h2><div style="overflow-x:auto;"><table id="table8"></table></div></div>
-      <div class="card"><h2>표 8-1. 도수치료 치료사별 신환/재진 예약 비율(O/X)</h2><div style="overflow-x:auto;"><table id="table8r"></table></div></div>
+      <div class="card"><h2>표 8-1. 도수치료 치료사별 신환/재진 예약 비율(당월 신환 기준)</h2><div style="overflow-x:auto;"><table id="table8r"></table></div></div>
+      <div class="card"><h2>표 8-2. 도수치료 치료사별 신환/재진 예약 비율(기존 재진 포함)</h2><div style="overflow-x:auto;"><table id="table8r2"></table></div></div>
       <div class="card"><h2>표 9. 첫 치료 → 2회차 재방문 주기</h2><div style="overflow-x:auto;"><table id="table9"></table></div></div>
 
       
@@ -201,7 +202,25 @@
 
   <footer>© JINSUL · 경험과 가치를 현실화하는 컨설팅</footer>
 
-  <script>
+  
+      <details class="card" id="metricHelp">
+        <summary><b>지표 설명 (펼치기)</b></summary>
+        <div class="note" style="margin-top:10px; line-height:1.6;">
+          <ul>
+            <li><b>신환</b>: 업로드한 원본 데이터의 ‘신/재’가 신환(또는 기타여부)으로 표기된 방문/환자.</li>
+            <li><b>재진</b>: 원본 데이터의 ‘신/재’가 재진으로 표기된 방문/환자.</li>
+            <li><b>2회차 전환율</b>: 당월 신환 중 2회차 이상 방문한 환자 비율.</li>
+            <li><b>3/7/14일 내 재방문율</b>: 최초 치료일로부터 D+3/7/14일 이내에 2회차 방문이 발생한 비율 (월→목은 3일).</li>
+            <li><b>연령대별 회차 도달률(누적)</b>: 각 연령대에서 해당 회차 이상까지 도달한 환자 비율(누적).</li>
+            <li><b>표 9 재방문 주기</b>: 최초 치료 → 2회차까지 걸린 일수 구간(0-3일 등). ‘1회만 내원’은 2회차가 없는 경우.</li>
+            <li><b>표 8-1 예약 비율(당월 신환 기준)</b>: 당월 신환 cohort만 대상으로, <u>방문 단위</u>로 예약 O/X를 집계(같은 방문에 O와 X가 섞이면 O 우선).</li>
+            <li><b>표 8-2 예약 비율(기존 재진 포함)</b>: 당월 전체 방문(기존 재진 포함)을 대상으로 동일 기준으로 예약 O/X를 집계.</li>
+            <li><b>0 값 표기</b>: 표/지표에서 0은 ‘-’로 표시.</li>
+          </ul>
+        </div>
+      </details>
+
+<script>
 
     let freeExpanded = false; // (declared early to avoid TDZ during init)
 
@@ -586,7 +605,7 @@ function extractParts(partRaw){
 }
 
 function fmtPct(x){ return (isFinite(x) ? (x*100).toFixed(1) : '0.0') + '%'; }
-    function fmtInt(x){ return (isFinite(x) ? Math.round(x).toLocaleString() : '0'); }
+    function fmtInt(x){ if(!isFinite(x)) return '-'; const v=Math.round(x); return v===0 ? '-' : v.toLocaleString(); }
     
     // 0 값(지표/표)을 '-'로 표시 (0/82 같은 분수는 유지)
     function replaceZeroIndicators(){
@@ -655,7 +674,25 @@ buildData();
       const cleaned = rawRows.map(row => {
         const out = {};
         Object.keys(row||{}).forEach(k => out[normKey(k)] = row[k]);
-        return out;
+
+        // (중요) 헤더가 조금이라도 달라도 표준 키로 다시 매핑하여 누락(특히 '환자 차트')을 방지
+        try{
+          const idx = new Map();
+          Object.keys(out).forEach(k => idx.set(_hNorm(k), k));
+          const stdRow = {};
+          (_COL_SYNONYMS||[]).forEach(({std, syn})=>{
+            for(const s of (syn||[])){
+              const kk = idx.get(_hNorm(s));
+              if(kk!==undefined){
+                stdRow[std] = out[kk];
+                break;
+              }
+            }
+          });
+          return Object.assign({}, out, stdRow);
+        }catch(e){
+          return out;
+        }
       });
 
       // 2) 치료사/환자 컨텍스트 ffill
@@ -771,7 +808,7 @@ buildData();
       amountListFree = Array.from(new Set(
         patientsAll.filter(p=>p.freeStart)
           .map(p=>p.freeEntryPrice)
-          .filter(v=>isFinite(v) && v>0)
+          .filter(v=>isFinite(v) && v>=0)
       )).sort((a,b)=>a-b);
 
       exclAmtSet = new Set();
@@ -1025,7 +1062,7 @@ function buildPriceButtons(){
 
       // 기타여부 금액 후보 + 현재 제외값 union
       const unionFree = Array.from(new Set([...(amountListFree||[]), ...Array.from(exclAmtFreeSet||[])]))
-        .filter(v=>isFinite(v) && v>0)
+        .filter(v=>isFinite(v) && v>=0)
         .sort((a,b)=>a-b);
 
       unionFree.forEach(v => box.appendChild(mkBtn(v.toLocaleString() + '원(기타)', v, true)));
@@ -1247,18 +1284,18 @@ function buildPriceButtons(){
           const cnt = getCount(r,c) || 0;
           colTotals[ci] += cnt;
           const pct = rowTot ? fmtPct(cnt/rowTot) : '0%';
-          cells += rowTot ? `<td>${fmtInt(cnt)}명 (${pct})</td>` : `<td>-</td>`;
+          cells += rowTot ? `<td>${fmtInt(cnt)} / ${pct}</td>` : `<td>-</td>`;
         });
         grand += rowTot;
-        body += `<tr><td>${r}</td>${cells}<td class="total-col">${fmtInt(rowTot)}명</td></tr>`;
+        body += `<tr><td>${r}</td>${cells}<td class="total-col">${fmtInt(rowTot)}</td></tr>`;
       });
 
       body += `<tr class="total-row"><td>총 합계</td>` +
         colTotals.map(v=>{
           const pct = grand ? fmtPct(v/grand) : '0%';
-          return `<td>${fmtInt(v)}명 (${pct})</td>`;
+          return `<td>${fmtInt(v)} / ${pct}</td>`;
         }).join('') +
-        `<td class="total-col">${fmtInt(grand)}명</td></tr>`;
+        `<td class="total-col">${fmtInt(grand)}</td></tr>`;
 
       body += `</tbody>`;
       setHtml(tableId, head + body);
@@ -1407,6 +1444,7 @@ const comboN = cohort.filter(p => p.hasInjection).length;
       const medV = median(shockCounts);
       const modeV = modeInfo(shockCounts);
 
+      const r3dN  = cohort.filter(p => (p.daysTo2 !== null && p.daysTo2 <= 3)).length;
       const r7N  = cohort.filter(p => (p.daysTo2 !== null && p.daysTo2 <= 7)).length;
       const r14N = cohort.filter(p => (p.daysTo2 !== null && p.daysTo2 <= 14)).length;
 
@@ -1552,6 +1590,7 @@ const comboN = cohort.filter(p => p.hasInjection).length;
         {k:'평균 치료 횟수', v: avgV.toFixed(2)},
         {k:'중간값 치료 횟수', v: (medV>=5 ? '5회 이상' : String(medV))},
         {k:'최빈 치료 횟수', v: (modeV.modes.length ? Array.from(new Set(modeV.modes.map(v=> (v>=5 ? '5회 이상' : String(v))))).join(', ') : '-')},
+        {k:'3일 내 재방문율', v: n ? fmtPct(r3dN/n) : '0%'},
         {k:'7일 내 재방문율', v: n ? fmtPct(r7N/n) : '0%'},
         {k:'14일 내 재방문율', v: n ? fmtPct(r14N/n) : '0%'}]);
       // 표 3: 연령대별 (신환 수 / 재방문 / 평균 치료 횟수)
@@ -1858,8 +1897,88 @@ if(!cohortKeySet.has(r.key)) continue;
         t8r
       );
 
+
+      // 표 8-2: 도수치료 치료사별 신환/재진 예약 비율(기존 재진 포함) (방문 단위)
+      const actKeySet2 = new Set(activePatients().map(p=>p.key));
+
+      const visitAgg2 = new Map();
+      for(const r of records){
+        if(!actKeySet2.has(r.key)) continue;
+        const vid = [r.key, r.therapist||'미상', String(r.visitKey||'')].join('||');
+        if(!visitAgg2.has(vid)){
+          visitAgg2.set(vid, {therapist:(r.therapist||'미상'), isNew:false, reserve:''});
+        }
+        const a = visitAgg2.get(vid);
+
+        const nf = toStr(r.newFlag).trim();
+        if(nf.includes('신환') || nf.includes('기타')) a.isNew = true;
+
+        const rv = toStr(r.reserve).trim().toUpperCase();
+        if(rv==='O') a.reserve = 'O';
+        else if(rv==='X' && a.reserve!=='O') a.reserve = 'X';
+      }
+
+      const byTher2 = new Map();
+      for(const v of visitAgg2.values()){
+        const th = v.therapist || '미상';
+        if(!byTher2.has(th)){
+          byTher2.set(th, {therapist:th, nO:0,nX:0,nM:0, rO:0,rX:0,rM:0});
+        }
+        const o = byTher2.get(th);
+        const bucket = v.isNew ? 'n' : 'r';
+        if(bucket==='n'){
+          if(v.reserve==='O') o.nO += 1;
+          else if(v.reserve==='X') o.nX += 1;
+          else o.nM += 1;
+        }else{
+          if(v.reserve==='O') o.rO += 1;
+          else if(v.reserve==='X') o.rX += 1;
+          else o.rM += 1;
+        }
+      }
+
+      const t8r2 = Array.from(byTher2.values())
+        .sort((a,b)=> a.therapist.localeCompare(b.therapist,'ko'))
+        .map(o=>({
+          '치료사': o.therapist,
+          '신환 O': o.nO,
+          '신환 X': o.nX,
+          '신환 예약 비율': (o.nO+o.nX) ? fmtPct(o.nO/(o.nO+o.nX)) : '-',
+          '재진 O': o.rO,
+          '재진 X': o.rX,
+          '재진 예약 비율': (o.rO+o.rX) ? fmtPct(o.rO/(o.rO+o.rX)) : '-',
+          '미기입': o.nM + o.rM
+        }));
+
+      const tot8r2 = t8r2.reduce((m,row)=>{
+        m.nO += (row['신환 O']||0); m.nX += (row['신환 X']||0);
+        m.rO += (row['재진 O']||0); m.rX += (row['재진 X']||0);
+        m.miss += (row['미기입']||0);
+        return m;
+      }, {nO:0,nX:0,rO:0,rX:0,miss:0});
+
+      t8r2.push({
+        '치료사': '총 합계',
+        '신환 O': tot8r2.nO,
+        '신환 X': tot8r2.nX,
+        '신환 예약 비율': (tot8r2.nO+tot8r2.nX) ? fmtPct(tot8r2.nO/(tot8r2.nO+tot8r2.nX)) : '-',
+        '재진 O': tot8r2.rO,
+        '재진 X': tot8r2.rX,
+        '재진 예약 비율': (tot8r2.rO+tot8r2.rX) ? fmtPct(tot8r2.rO/(tot8r2.rO+tot8r2.rX)) : '-',
+        '미기입': tot8r2.miss
+      });
+
+      renderSimpleTable('table8r2',
+        [{k:'치료사',l:'치료사',w:90},
+         {k:'신환 O',l:'신환 O'},{k:'신환 X',l:'신환 X'},{k:'신환 예약 비율',l:'신환 예약 비율'},
+         {k:'재진 O',l:'재진 O'},{k:'재진 X',l:'재진 X'},{k:'재진 예약 비율',l:'재진 예약 비율'},
+         {k:'미기입',l:'미기입'}],
+        t8r2
+      );
+
+
       // 표 9: 재방문 주기(첫 도수치료 → 2회차)
-      const speedBinsAll = ['0-7일','8-14일','15-30일','31-60일','61일 이상','1회만 내원'];
+      const speedBinsAll = ['0-3일','4-7일','8-14일','15-30일','31-60일','61일 이상','1회만 내원'];
       const spMat = new Map();
       speedBinsAll.forEach(b=>{
         const m = new Map(); ageCols.forEach(a=>m.set(a,0));
@@ -1871,7 +1990,8 @@ if(!cohortKeySet.has(r.key)) continue;
         let b = '1회만 내원'; // 2회차가 없으면 1회만 내원으로 분류
         if(p.daysTo2 !== null){
           const d = p.daysTo2;
-          if(d <= 7) b = '0-7일';
+          if(d <= 3) b = '0-3일';
+          else if(d <= 7) b = '4-7일';
           else if(d <= 14) b = '8-14일';
           else if(d <= 30) b = '15-30일';
           else if(d <= 60) b = '31-60일';
@@ -1887,7 +2007,7 @@ if(!cohortKeySet.has(r.key)) continue;
         return total > 0;
       });
 
-      renderMatrix('table9', speedBins, ageCols, (bin, age)=> (spMat.get(bin)?.get(age)) || 0);
+      renderMatrixCountPctTotals('table9', ageCols, speedBins, (age, bin)=> (spMat.get(bin)?.get(age)) || 0, ageTotals);
 
 
       // 표 10: 진료실별 핵심지표 (신환 첫 치료 기준)
