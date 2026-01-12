@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>JINSUL - 전략 분석 시스템 (v 0.0.5.6)</title>
+  <title>JINSUL - 전략 분석 시스템 (v 0.0.6.3)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -80,7 +80,7 @@
 </style>
 </head>
 <body>
-  <div class="version-tag">v0.0.5.6</div>
+  <div class="version-tag">v0.0.6.3</div>
   <img src="jinsul-logo.png" class="watermark" alt="bg" />
   <header>
     <img src="jinsul-logo.png" alt="logo" />
@@ -162,6 +162,8 @@
       <div class="cards-grid">
       <div class="card"><h2>표 1. 부위별 치료 횟수</h2><div style="overflow-x:auto;"><table id="table1"></table></div></div>
 
+      <div class="card"><h2>표 1-0. 부위별 요약(당월 신환 기준)</h2><div style="overflow-x:auto;"><table id="table1_summary"></table></div></div>
+
       <div class="card"><h2>표 1-1. 치료사별·부위별 치료 횟수</h2><div style="overflow-x:auto;"><table id="table1a"></table></div></div>
 
       <div class="card"><h2>표 1-1A. 치료사별·부위별 환자당 평균 치료 횟수</h2><div style="overflow-x:auto;"><table id="table1a_avg"></table></div></div>
@@ -229,7 +231,36 @@
 
 <script>
 
+
+    // ---- Percent formatter (global) ----
+    // Rule: round to integer %, but <=1% shows 1 decimal; 0 -> '-'
+    function _pctToStr(p){
+      if(p===null || p===undefined) return '-';
+      let pct = Number(p);
+      if(!isFinite(pct)) return '-';
+      if(pct <= 1) pct = pct * 100; // fraction -> percent
+      if(pct <= 0) return '-';
+      if(pct <= 1){
+        const v = Math.round(pct*10)/10;
+        const shown = (v===0 ? 0.1 : v);
+        return shown.toFixed(1) + '%';
+      }
+      return Math.round(pct) + '%';
+    }
+    var fmtPct = (typeof fmtPct === 'function') ? fmtPct : _pctToStr;
+    var ffmtPct = (typeof ffmtPct === 'function') ? ffmtPct : _pctToStr;
     let freeExpanded = false; // (declared early to avoid TDZ during init)
+
+    // ---- formatter guard (prevents render crash) ----
+    var fmtPct = (typeof fmtPct === 'function') ? fmtPct : function(x){
+      if(!isFinite(x)) return '-';
+      const pct = x*100;
+      if(pct<=0) return '-';
+      if(pct<=1) return pct.toFixed(1) + '%';
+      return Math.round(pct) + '%';
+    };
+    var fmtPct0 = (typeof fmtPct0 === 'function') ? fmtPct0 : function(x){ return fmtPct(x); };
+
 
 
 
@@ -333,6 +364,26 @@ function getDroppedFile(dt){
       {std:'진료실', syn:['진료실','실','room','진료실/구역']},
       {std:'비고', syn:['비고','메모','특이사항','note']},
     ];
+    function getBySyn(row, syns){
+      try{
+        for(const s of (syns||[])){
+          if(row && row[s]!==undefined && row[s]!==null){
+            const v = String(row[s]).trim();
+            if(v!=='') return row[s];
+          }
+        }
+        // fallback: scan keys with normalized match
+        const synNorm = new Set((syns||[]).map(s=>_hNorm(s)));
+        for(const k of Object.keys(row||{})){
+          if(synNorm.has(_hNorm(k))){
+            const v = row[k];
+            if(v!==undefined && v!==null && String(v).trim()!=='') return v;
+          }
+        }
+      }catch(e){}
+      return '';
+    }
+
 
     function _stdKeyFromHeader(h){
       const hn=_hNorm(h);
@@ -615,15 +666,32 @@ function extractParts(partRaw){
 function fmtPct(x){
       if(!isFinite(x)) return '-';
       const pct = x*100;
-      if(pct <= 0) return '-';
-      if(pct < 0.05) return '0%';
-      if(pct <= 1) return pct.toFixed(1) + '%';
+      if(pct<=0) return '-';
+      if(pct<=1) return pct.toFixed(1) + '%';
       return Math.round(pct) + '%';
     }
     function fmtPct0(x){ return fmtPct(x); }
 function fmtInt(x){ if(!isFinite(x)) return '-'; const v=Math.round(x); return v===0 ? '-' : v.toLocaleString(); }
     
-    // 0 값(지표/표)을 '-'로 표시 (0/82 같은 분수는 유지)
+    
+    function fmtCount(x, unit){
+      if(!isFinite(x)) return '-';
+      const v = Math.round(x);
+      if(v===0) return '-';
+      return v.toLocaleString() + (unit||'');
+    }
+    function fmtMoney(x){
+      if(!isFinite(x)) return '-';
+      const v = Math.round(x);
+      if(v===0) return '-';
+      return v.toLocaleString() + '원';
+    }
+    function fmtFloat(x, d=2){
+      if(!isFinite(x)) return '-';
+      if(x===0) return '-';
+      return x.toFixed(d);
+    }
+// 0 값(지표/표)을 '-'로 표시 (0/82 같은 분수는 유지)
     function replaceZeroIndicators(){
       const root = document.getElementById('dashArea') || document.body;
       const nodes = root.querySelectorAll('td, th, .kpi-value, .stat, .metric, .value, .big, .big-number');
@@ -734,14 +802,25 @@ buildData();
 
         const name = toStr(r['이름']).trim();
         if(name){
+          // 이름이 바뀌는 시점(새 환자 시작)에는 이전 환자의 값(특히 신/재=기타여부)이 누수되지 않도록 컨텍스트를 리셋
+          if(ctx.name && name !== ctx.name){
+            ctx.chart = '';
+            ctx.sexAge = '';
+            ctx.newFlag = '';
+            ctx.visitDt = null;
+            ctx.typeRaw = '';
+            ctx.round = '';
+            ctx.room = '';
+            // ctx.therapist is preserved across patient rows
+          }
           ctx.name = name;
-          const cRaw = (r['환자 차트']!==undefined ? r['환자 차트'] : (r['환자차트']!==undefined ? r['환자차트'] : r['차트']));
+          const cRaw = getBySyn(r, ['환자 차트','환자차트','차트','차트번호','차트 번호','등록번호','환자번호','chart']);
           const c = toStr(cRaw).replace(/[^0-9]/g,'').trim();
           if(c) ctx.chart = c;
           const sa = toStr(r['성별/연령']).trim();
-          if(sa) ctx.sexAge = sa;
+          if(sa) ctx.sexAge = sa; else ctx.sexAge = '';
           const nf = toStr(r['신/재']).trim();
-          if(nf) ctx.newFlag = nf;
+          if(nf) ctx.newFlag = nf; else ctx.newFlag = '';
         }
 
         // 실제 데이터가 거의 없는 빈 행은 스킵
@@ -775,10 +854,14 @@ buildData();
 
         const amt = moneyOrNull(r['금액']);
 
-        const sexAge = toStr(r['성별/연령']).trim() || ctx.sexAge;
-        const newFlag = toStr(r['신/재']).trim() || ctx.newFlag;
+        const sexAgeCell = toStr(r['성별/연령']).trim();
+        if(sexAgeCell) ctx.sexAge = sexAgeCell;
+        const sexAge = sexAgeCell || ctx.sexAge;
+        const newFlagCell = toStr(r['신/재']).trim();
+        if(newFlagCell) ctx.newFlag = newFlagCell;
+        const newFlag = newFlagCell || ctx.newFlag;
 
-        const chartRaw2 = (r['환자 차트']!==undefined ? r['환자 차트'] : (r['환자차트']!==undefined ? r['환자차트'] : r['차트']));
+        const chartRaw2 = getBySyn(r, ['환자 차트','환자차트','차트','차트번호','차트 번호','등록번호','환자번호','chart']);
 
         const chart = toStr(chartRaw2).replace(/[^0-9]/g,'').trim() || ctx.chart;
 
@@ -792,7 +875,7 @@ buildData();
           therapist: ctx.therapist || '미상',
           name: ctx.name,
           chart: chart,
-          key: (chart ? (chart+'|'+ctx.name) : ctx.name),
+          key: (chart ? (chart+'|'+ctx.name) : (ctx.name + '|' + (ctx.sexAge||'') + '|' + (ctx.therapist||''))),
           sexAge: sexAge,
           gender: parseGender(sexAge),
           ageBucket: parseAgeBucket(sexAge),
@@ -852,17 +935,30 @@ buildData();
 
         // 무료→유료 전환(기타여부 → 신환/재진) 계산 (방문일 기준, '첫 상태=기타'일 때만)
         const rowsSortedByDay = rows.slice().sort((a,b)=>{
-          const ak = (a.visitKey===null || a.visitKey===undefined) ? 0 : a.visitKey;
-          const bk = (b.visitKey===null || b.visitKey===undefined) ? 0 : b.visitKey;
+          const ak = isFinite(a.visitKey) ? a.visitKey : Number.POSITIVE_INFINITY;
+          const bk = isFinite(b.visitKey) ? b.visitKey : Number.POSITIVE_INFINITY;
+          if(ak===bk){
+            return (a.__rowIndex||0) - (b.__rowIndex||0);
+          }
           return ak - bk;
         });
 
-        const firstStatusRow = rowsSortedByDay.find(r => toStr(r.newFlag).trim());
-        const firstStatus = firstStatusRow ? toStr(firstStatusRow.newFlag) : '';
-        const freeStart = firstStatus.includes('기타');
-        const freeStartKey = (firstStatusRow && isFinite(firstStatusRow.visitKey)) ? firstStatusRow.visitKey : null;
+        const finiteKeys = rowsSortedByDay.map(r=>r.visitKey).filter(v=>isFinite(v));
+        const minVisitKey = finiteKeys.length ? Math.min(...finiteKeys) : Number.POSITIVE_INFINITY;
+        const firstDayRows = (minVisitKey!==Number.POSITIVE_INFINITY)
+          ? rowsSortedByDay.filter(r=>r.visitKey===minVisitKey)
+          : (rowsSortedByDay.length ? [rowsSortedByDay[0]] : []);
 
-        let freeConverted = false;
+        const firstStatusRow = firstDayRows.find(r => toStr(r.newFlag).trim()) || firstDayRows[0] || null;
+        const firstStatus = firstStatusRow ? toStr(firstStatusRow.newFlag) : '';
+
+        const firstDayAmounts = firstDayRows.map(r=>r.amount).filter(v=>isFinite(v));
+        const firstDayMaxAmt = firstDayAmounts.length ? Math.max(...firstDayAmounts) : (firstStatusRow && isFinite(firstStatusRow.amount) ? firstStatusRow.amount : null);
+
+        // 무료(기타여부) 시작(첫 방문 기준) = (첫 방문일의 상태가 '기타여부') 또는 (첫 방문일 금액이 0원)
+        const freeStart = firstStatus.includes('기타여부') || (firstDayMaxAmt===0);
+        const freeStartKey = (minVisitKey!==Number.POSITIVE_INFINITY) ? minVisitKey : (firstStatusRow && isFinite(firstStatusRow.visitKey) ? firstStatusRow.visitKey : null);
+let freeConverted = false;
         let freeConversionTo = null;
         let freeConversionKey = null;
 
@@ -1150,6 +1246,70 @@ function buildPriceButtons(){
         return cls.includes('total') || firstVal.includes('총 합계');
       });
 
+      // If a total row already exists but is empty ('-' / ''), fill additive columns automatically.
+      const totalRowIndex = bodyRows.findIndex(r=>{
+        if(!r) return false;
+        const cls = String(r._rowClass||'');
+        const firstVal = firstKey ? String(r[firstKey]||'') : '';
+        return cls.includes('total') || firstVal.includes('총 합계');
+      });
+      if(totalRowIndex >= 0 && firstKey){
+        const tr = bodyRows[totalRowIndex];
+        let clsName = String(tr._rowClass||'');
+        if(!clsName.includes('total-row')) tr._rowClass = (clsName ? (clsName + ' ') : '') + 'total-row';
+
+        cols.slice(1).forEach(c=>{
+          const cur = (tr[c.k]!==null && tr[c.k]!==undefined) ? String(tr[c.k]).trim() : '';
+          if(cur && cur !== '-') return;
+
+          const label = String(c.l||c.k||'');
+          if(/율|비중|%|평균|중간|최빈|도달|유형|소요일|주기|기간|설명|텍스트|분포/.test(label)){
+            tr[c.k] = '-';
+            return;
+          }
+
+          let _sum = 0;
+          let _hasNum = false;
+          let _hasFloat = false;
+
+          for(const rr of bodyRows){
+            if(!rr || rr===tr) continue;
+            let v = rr[c.k];
+            if(v===null || v===undefined || v==='') continue;
+            let s = String(v).replace(/<[^>]*>/g,'').trim();
+            if(!s) continue;
+            if(s.includes('%')){ _hasNum = false; _sum = 0; break; }
+            s = s.replace(/,/g,'');
+            if(s.includes('/') || s.includes('신환') || s.includes('재진')) continue;
+            const nm = s.match(/-?\d+(\.\d+)?/);
+            if(!nm) continue;
+            _hasNum = true;
+            if(nm[0].includes('.')) _hasFloat = true;
+            _sum += parseFloat(nm[0]);
+          }
+
+          if(!_hasNum){
+            tr[c.k] = '-';
+          }else{
+            let unit = '';
+            for(const rr2 of bodyRows){
+              if(!rr2 || rr2===tr) continue;
+              const vv = rr2[c.k];
+              if(vv===null || vv===undefined || vv==='') continue;
+              const ss = String(vv).replace(/<[^>]*>/g,'');
+              if(ss.includes('원')){ unit='원'; break; }
+              if(ss.includes('명')){ unit='명'; }
+              if(ss.includes('회')){ unit='회'; }
+            }
+            if(unit==='원') tr[c.k] = Math.round(_sum).toLocaleString() + '원';
+            else if(unit==='명') tr[c.k] = Math.round(_sum).toLocaleString() + '명';
+            else if(unit==='회') tr[c.k] = (_hasFloat ? _sum.toFixed(2) : Math.round(_sum).toLocaleString()) + '회';
+            else tr[c.k] = (_hasFloat ? _sum.toFixed(2) : Math.round(_sum).toLocaleString());
+          }
+        });
+      }
+
+
       if(!hasTotalRow && bodyRows.length && firstKey){
         const totalRow = {_rowClass:'total-row'};
         totalRow[firstKey] = '총 합계';
@@ -1157,7 +1317,7 @@ function buildPriceButtons(){
         cols.slice(1).forEach(c=>{
           const label = String(c.l||c.k||'');
           // Non-additive columns: keep blank.
-          if(/율|비중|%|평균|중간|최빈|도달/.test(label)){
+          if(/율|비중|%|평균|중간|최빈|도달|유형|소요일|주기|기간|설명|텍스트|분포/.test(label)){
             totalRow[c.k] = '-';
             return;
           }
@@ -1178,17 +1338,33 @@ function buildPriceButtons(){
 
             // extract number
             s = s.replace(/,/g,'');
-            if(!/^-?\d+(\.\d+)?$/.test(s)) continue;
+            if(s.includes('/') || s.includes('신환') || s.includes('재진')) continue;
+            const nm = s.match(/-?\d+(\.\d+)?/);
+            if(!nm) continue;
 
             hasNum = true;
-            if(s.includes('.')) hasFloat = true;
-            sum += parseFloat(s);
+            if(nm[0].includes('.')) hasFloat = true;
+            sum += parseFloat(nm[0]);
           }
 
           if(!hasNum){
             totalRow[c.k] = '-';
           }else{
-            totalRow[c.k] = hasFloat ? sum.toFixed(2) : fmtInt(Math.round(sum));
+            // detect unit from sample values
+            let unit = '';
+            for(const r2 of bodyRows){
+              if(!r2) continue;
+              const vv = r2[c.k];
+              if(vv===null || vv===undefined || vv==='') continue;
+              const ss = String(vv).replace(/<[^>]*>/g,'');
+              if(ss.includes('원')){ unit='원'; break; }
+              if(ss.includes('명')){ unit='명'; }
+              if(ss.includes('회')){ unit = unit || '회'; }
+              if(ss.includes('건')){ unit = unit || '건'; }
+            }
+            if(unit==='원') totalRow[c.k] = fmtMoney(sum);
+            else if(unit) totalRow[c.k] = fmtCount(sum, unit);
+            else totalRow[c.k] = hasFloat ? sum.toFixed(2) : fmtInt(Math.round(sum));
           }
         });
 
@@ -1196,7 +1372,10 @@ function buildPriceButtons(){
       }
 
       const tbody = `<tbody>` + bodyRows.map(r=>{
-        const cls = (r && r._rowClass) ? ` class="${r._rowClass}"` : '';
+        let clsName = (r && r._rowClass) ? String(r._rowClass) : '';
+        const firstVal = (r && firstKey) ? String(r[firstKey]||'') : '';
+        if(firstVal.includes('총 합계') && !clsName.includes('total-row')) clsName = (clsName? (clsName+' ') : '') + 'total-row';
+        const cls = clsName ? ` class="${clsName}"` : '';
         return `<tr${cls}>` + cols.map(c=>{
           const v = (r && (r[c.k]!==null && r[c.k]!==undefined)) ? r[c.k] : '';
           return `<td>${v}</td>`;
@@ -1253,16 +1432,16 @@ function buildPriceButtons(){
           const v = getVal(rLabel, cLabel) || 0;
           rowSum += v;
           colTotals[ci] += v;
-          cells += `<td>${v}</td>`;
+          cells += `<td>${v ? v : '-'}</td>`;
         });
         grand += rowSum;
-        body += `<tr><td>${rLabel}</td>${cells}<td class="total-col">${rowSum}</td></tr>`;
+        body += `<tr><td>${rLabel}</td>${cells}<td class="total-col">${fmtInt(rowSum)}</td></tr>`;
       });
 
       // totals row
       body += `<tr class="total-row"><td>총 합계</td>` +
-        colTotals.map(v=>`<td>${v}</td>`).join('') +
-        `<td class="total-col">${grand}</td></tr>`;
+        colTotals.map(v=>`<td>${v ? v : '-'}</td>`).join('') +
+        `<td class="total-col">${fmtInt(grand)}</td></tr>`;
 
       body += `</tbody>`;
       setHtml(tableId, head + body);
@@ -1331,7 +1510,7 @@ function buildPriceButtons(){
         colLabels.forEach((c, ci)=>{
           const cnt = getCount(r,c) || 0;
           colTotals[ci] += cnt;
-          const pct = rowTot ? fmtPct(cnt/rowTot) : '0%';
+          const pct = rowTot ? fmtPct(cnt/rowTot) : '-';
           cells += rowTot ? `<td>${fmtInt(cnt)} / ${pct}</td>` : `<td>-</td>`;
         });
         grand += rowTot;
@@ -1340,7 +1519,7 @@ function buildPriceButtons(){
 
       body += `<tr class="total-row"><td>총 합계</td>` +
         colTotals.map(v=>{
-          const pct = grand ? fmtPct(v/grand) : '0%';
+          const pct = grand ? fmtPct(v/grand) : '-';
           return `<td>${fmtInt(v)} / ${pct}</td>`;
         }).join('') +
         `<td class="total-col">${fmtInt(grand)}</td></tr>`;
@@ -1370,7 +1549,7 @@ function buildPriceButtons(){
           rowTot += tot; rowN += n;
           colTot[ci] += tot; colN[ci] += n;
           const v = n ? `<span title="${tot}회 / ${n}명">${(tot/n).toFixed(2)}</span>` : '-';
-          cells += `<td>${v}</td>`;
+          cells += `<td>${v ? v : '-'}</td>`;
         });
         grandTot += rowTot; grandN += rowN;
         const rowV = rowN ? `<span title="${rowTot}회 / ${rowN}명">${(rowTot/rowN).toFixed(2)}</span>` : '-';
@@ -1547,13 +1726,13 @@ const comboN = cohort.filter(p => p.hasInjection).length;
       document.getElementById('v-count').textContent = fmtInt(n);
       document.getElementById('v-count-sub').textContent = selLabel + exclLabel;
 
-      document.getElementById('v-conv').textContent = n ? fmtPct(convN/n) : '0%';
+      document.getElementById('v-conv').textContent = fmtPct(convN/n);
       document.getElementById('v-conv-sub').textContent = n ? `${convN}/${n}` : '0/0';
 
-      document.getElementById('v-ret').textContent = n ? fmtPct(r3N/n) : '0%';
+      document.getElementById('v-ret').textContent = fmtPct(r3N/n);
       document.getElementById('v-ret-sub').textContent = n ? `${r3N}/${n}` : '0/0';
 
-      document.getElementById('v-combo').textContent = n ? fmtPct(comboN/n) : '0%';
+      document.getElementById('v-combo').textContent = fmtPct(comboN/n);
       document.getElementById('v-combo-sub').textContent = n ? `${comboN}/${n}` : '0/0';
 
       document.getElementById('v-avgV').textContent = avgV.toFixed(1);
@@ -1564,10 +1743,10 @@ const comboN = cohort.filter(p => p.hasInjection).length;
       document.getElementById('v-modeV').textContent = modeLabel;
       document.getElementById('v-modeV-sub').textContent = modeSub;
 
-      document.getElementById('v-r7').textContent = n ? fmtPct(r7N/n) : '0%';
+      document.getElementById('v-r7').textContent = fmtPct(r7N/n);
       document.getElementById('v-r7-sub').textContent = n ? `${r7N}/${n}` : '0/0';
 
-      document.getElementById('v-r14').textContent = n ? fmtPct(r14N/n) : '0%';
+      document.getElementById('v-r14').textContent = fmtPct(r14N/n);
       document.getElementById('v-r14-sub').textContent = n ? `${r14N}/${n}` : '0/0';
 
 // 표 1: 부위별 치료 횟수 (충격파 row 기준) - 연령대 포함
@@ -1650,6 +1829,90 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
         (t, part)=> (therPart.get(t + '||' + part) || 0),
         (t, part)=> {
           const s = therPartPatients.get(t + '||' + part);
+
+      // 표 1-0: 부위별 요약(미리보기) - 부위별 핵심 지표를 한 표로 보기
+      (function(){
+        try{
+          const partTotalVisits = new Map();
+          PARTS.forEach(part=>{
+            let sum=0;
+            for(const a of ageCols){
+              sum += (partAge.get(part+'||'+a) || 0);
+            }
+            partTotalVisits.set(part,sum);
+          });
+
+          const partEntrySum = new Map();
+          const partEntryN = new Map();
+          cohort.forEach(p=>{
+            const partSet = new Set();
+            p.rows.filter(r=>isShock(r.typeRaw)).forEach(r=>{
+              extractParts(r.part).forEach(pt=>partSet.add(pt));
+            });
+            for(const pt of partSet){
+              const ep = isFinite(p.entryPrice) ? p.entryPrice : 0;
+              if(ep>0){
+                partEntrySum.set(pt,(partEntrySum.get(pt)||0)+ep);
+                partEntryN.set(pt,(partEntryN.get(pt)||0)+1);
+              }
+            }
+          });
+
+          const partTherAvg = new Map();
+          PARTS.forEach(part=>{
+            let sum=0, nT=0;
+            for(const t of therSet){
+              const k = t+'||'+part;
+              const ps = therPartPatients.get(k);
+              if(ps && ps.size){
+                sum += ((therPart.get(k)||0) / ps.size);
+                nT++;
+              }
+            }
+            partTherAvg.set(part, nT ? (sum/nT) : 0);
+          });
+
+          const rows = PARTS.map(part=>{
+            const pats = partPatientN.get(part)||0;
+            const visits = partTotalVisits.get(part)||0;
+            const avg = pats ? (visits/pats) : 0;
+            const tavg = partTherAvg.get(part)||0;
+            const epAvg = (partEntryN.get(part)||0) ? (partEntrySum.get(part)/partEntryN.get(part)) : 0;
+            return {
+              '부위': part,
+              '환자 수': fmtCount(pats,'명'),
+              '치료 건수': fmtCount(visits,'회'),
+              '환자당 평균 치료횟수': avg ? avg.toFixed(2) : '-',
+              '치료사 평균 치료횟수': tavg ? tavg.toFixed(2) : '-'
+            };
+          });
+
+          // --- Total row (unique patients in cohort) ---
+          try{
+            let _totalVisits = 0;
+            partTotalVisits.forEach(v=>{ _totalVisits += (v||0); });
+            rows.push({
+              _rowClass:'total-row',
+              '부위':'총 합계',
+              '환자 수': fmtCount(cohort.length,'명'),
+              '치료 건수': fmtCount(_totalVisits,'회'),
+              '환자당 평균 치료횟수': '-',
+              '치료사 평균 치료횟수': '-'
+            });
+          }catch(e){}
+
+          renderSimpleTable('table1_summary',
+            [{k:'부위',l:'부위',w:110},
+             {k:'환자 수',l:'환자 수'},
+             {k:'치료 건수',l:'치료 건수'},
+             {k:'환자당 평균 치료횟수',l:'환자당 평균 치료횟수'},
+             {k:'치료사 평균 치료횟수',l:'치료사 평균 치료횟수'},
+             ],
+            rows
+          );
+        }catch(e){}
+      })();
+
           return s ? s.size : 0;
         }
       );// 표 1-3~1-6: Free(기타여부) → 유료 전환 (기타→신환/재진)
@@ -1668,10 +1931,10 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       const freeMaxDays2 = freeDaysArr2.length ? Math.max(...freeDaysArr2) : null;
 
       renderKeyValueTable('table1c', [
-        {k:'무료(기타여부) 시작', v: `${fmtInt(freeN2)}명`},
-        {k:'Free(기타여부) → 유료 전환율', v: freeN2 ? `${fmtPct(freeRate2)}` : '0%'},
-        {k:'전환 인원', v: `${fmtInt(freeConvN2)}명`},
-        {k:'전환 유형', v: `신환 ${fmtInt(freeToNewN2)}명 / 재진 ${fmtInt(freeToReN2)}명`},
+        {k:'무료(기타여부) 시작(첫 방문 기준)', v: `${fmtCount(freeN2,'명')}`},
+        {k:'Free(기타여부) → 유료 전환율', v: freeN2 ? `${fmtPct(freeRate2)}` : '-'},
+        {k:'전환 인원', v: `${fmtCount(freeConvN2,'명')}`},
+        {k:'전환 유형', v: `신환 ${fmtCount(freeToNewN2,'명')} / 재진 ${fmtCount(freeToReN2,'명')}`},
         {k:'전환까지 소요일(방문일)', v: freeDaysArr2.length ? `평균 ${freeAvgDays2}일 · 중앙 ${freeMedDays2}일 (최소 ${freeMinDays2}~최대 ${freeMaxDays2})` : '-'}
       ]);
 
@@ -1683,9 +1946,9 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
         const cn = ps.filter(p=>p.freeConverted).length;
         freeAgeRows.push({
           '연령대': a,
-          '무료 시작': `${fmtInt(fn)}명`,
-          '전환': `${fmtInt(cn)}명`,
-          '전환율': fn ? fmtPct(cn/fn) : '0%'
+          '무료 시작': `${fmtCount(fn,'명')}`,
+          '전환': `${fmtCount(cn,'명')}`,
+          '전환율': fmtPct(cn/fn)
         });
       });
       renderSimpleTable('table1d', [
@@ -1715,9 +1978,9 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       });
       const freePartRows = Array.from(freePartMap.entries()).map(([pt,o])=>({
         '부위': pt,
-        '무료 시작': `${fmtInt(o.free)}명`,
-        '전환': `${fmtInt(o.conv)}명`,
-        '전환율': o.free ? fmtPct(o.conv/o.free) : '0%'
+        '무료 시작': `${fmtCount(o.free,'명')}`,
+        '전환': `${fmtCount(o.conv,'명')}`,
+        '전환율': o.free ? fmtPct(o.conv/o.free) : '-'
       }));
       renderSimpleTable('table1e', [
         {k:'부위',l:'부위',w:110},
@@ -1737,9 +2000,9 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       });
       const freeTherRows = Array.from(freeTherMap.entries()).sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([t,o])=>({
         '치료사': t,
-        '무료 시작': `${fmtInt(o.free)}명`,
-        '전환': `${fmtInt(o.conv)}명`,
-        '전환율': o.free ? fmtPct(o.conv/o.free) : '0%'
+        '무료 시작': `${fmtCount(o.free,'명')}`,
+        '전환': `${fmtCount(o.conv,'명')}`,
+        '전환율': o.free ? fmtPct(o.conv/o.free) : '-'
       }));
       renderSimpleTable('table1f', [
         {k:'치료사',l:'치료사',w:90},
@@ -1799,15 +2062,14 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       })();
 
       renderKeyValueTable('table2', [
-        {k:'신환 수(치료 금액)', v: `${fmtInt(n)}명 / ${selTxt}${exclTxt}`},        {k:'2회차 전환율', v: n ? `${fmtPct(convN/n)} (${fmtInt(convN)}/${fmtInt(n)})` : '0% (0/0)'},
-        {k:'3회차 도달율', v: n ? `${fmtPct(r3N/n)} (${fmtInt(r3N)}/${fmtInt(n)})` : '0% (0/0)'},
-        {k:'주사치료 병행 비율', v: n ? fmtPct(injRate) : '0%'},
-        {k:'평균 치료 횟수', v: avgV.toFixed(2)},
-        {k:'중간값 치료 횟수', v: (medV>=5 ? '5회 이상' : String(medV))},
-        {k:'최빈 치료 횟수', v: (modeV.modes.length ? Array.from(new Set(modeV.modes.map(v=> (v>=5 ? '5회 이상' : String(v))))).join(', ') : '-')},
-        {k:'3일 내 재방문율', v: n ? fmtPct(r3dN/n) : '0%'},
-        {k:'7일 내 재방문율', v: n ? fmtPct(r7N/n) : '0%'},
-        {k:'14일 내 재방문율', v: n ? fmtPct(r14N/n) : '0%'}]);
+        {k:'신환 수(치료 금액)', v: `${fmtCount(n,'명')} / ${selTxt}${exclTxt}`},
+        {k:'2회차 전환율', v: n ? `${fmtInt(convN)} / ${fmtPct(convN/n)}` : '-'},
+        {k:'3회차 도달율', v: n ? `${fmtInt(r3N)} / ${fmtPct(r3N/n)}` : '-'},
+        {k:'3일 내 재방문율(D+3)', v: n ? `${fmtInt(r3dN)} / ${fmtPct(r3dN/n)}` : '-'},
+        {k:'7일 내 재방문율(D+7)', v: n ? `${fmtInt(r7N)} / ${fmtPct(r7N/n)}` : '-'},
+        {k:'14일 내 재방문율(D+14)', v: n ? `${fmtInt(r14N)} / ${fmtPct(r14N/n)}` : '-'},
+        {k:'평균/중간값/최빈 치료 횟수', v: `${avgV.toFixed(1)} / ${medV} / ${modeLabel}`}
+      ]);
       // 표 3: 연령대별 (신환 수 / 재방문 / 평균 치료 횟수)
       const byAge = new Map(ageCols.map(a=>[a, {patients:0, shockDays:0, revisitPatients:0, revisitCount:0}]));
       cohort.forEach(p => {
@@ -1847,9 +2109,9 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
           '신환 수': o.patients,
           '남(명)': (sexMat.get(a)?.get('남')||0),
           '여(명)': (sexMat.get(a)?.get('여')||0),
-          '남 비중': o.patients ? fmtPct(((sexMat.get(a)?.get('남')||0)/o.patients)) : '0%',
-          '여 비중': o.patients ? fmtPct(((sexMat.get(a)?.get('여')||0)/o.patients)) : '0%',
-          '재방문율': o.patients ? fmtPct(o.revisitPatients/o.patients) : '0%',
+          '남 비중': o.patients ? fmtPct(((sexMat.get(a)?.get('남')||0)/o.patients)) : '-',
+          '여 비중': o.patients ? fmtPct(((sexMat.get(a)?.get('여')||0)/o.patients)) : '-',
+          '재방문율': o.patients ? fmtPct(o.revisitPatients/o.patients) : '-',
           '재방문 횟수': o.revisitCount,
           '평균 치료 횟수': o.patients ? (o.shockDays/o.patients).toFixed(2) : '0.00'
         };
@@ -1863,9 +2125,9 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
         '신환 수': n,
         '남(명)': sexTot.남,
         '여(명)': sexTot.여,
-        '남 비중': n ? fmtPct(sexTot.남/n) : '0%',
-        '여 비중': n ? fmtPct(sexTot.여/n) : '0%',
-        '재방문율': n ? fmtPct(convN/n) : '0%',
+        '남 비중': fmtPct(sexTot.남/n),
+        '여 비중': fmtPct(sexTot.여/n),
+        '재방문율': fmtPct(convN/n),
         '재방문 횟수': totalRevisitCount,
         '평균 치료 횟수': n ? (shockCounts.reduce((a,c)=>a+c,0)/n).toFixed(2) : '0.00'
       });
@@ -1966,9 +2228,9 @@ renderMatrix('table5', visitBins, ageCols, (bin, age)=> (keepMat.get(bin)?.get(a
         t7.push({
           '치료금액': price.toLocaleString()+'원',
           '신환수': n0,
-          '2회차 전환율': n0 ? fmtPct(c2/n0) : '0%',
-          '3회차 도달율': n0 ? fmtPct(c3/n0) : '0%',
-          '주사병행': n0 ? fmtPct(inj/n0) : '0%',
+          '2회차 전환율': n0 ? fmtPct(c2/n0) : '-',
+          '3회차 도달율': n0 ? fmtPct(c3/n0) : '-',
+          '주사병행': n0 ? fmtPct(inj/n0) : '-',
           '평균치료': n0 ? avgT.toFixed(2) : '0.00'
         });
       });
@@ -1978,9 +2240,9 @@ renderMatrix('table5', visitBins, ageCols, (bin, age)=> (keepMat.get(bin)?.get(a
           _rowClass: 'total-row',
           '치료금액': '총 합계',
           '신환수': totN,
-          '2회차 전환율': totN ? fmtPct(totC2/totN) : '0%',
-          '3회차 도달율': totN ? fmtPct(totC3/totN) : '0%',
-          '주사병행': totN ? fmtPct(totInj/totN) : '0%',
+          '2회차 전환율': totN ? fmtPct(totC2/totN) : '-',
+          '3회차 도달율': totN ? fmtPct(totC3/totN) : '-',
+          '주사병행': totN ? fmtPct(totInj/totN) : '-',
           '평균치료': totN ? (totShock/totN).toFixed(2) : '0.00'
         });
       }
@@ -2008,9 +2270,9 @@ renderMatrix('table5', visitBins, ageCols, (bin, age)=> (keepMat.get(bin)?.get(a
         t8.push({
           '치료사': t,
           '신환수': n0,
-          '2회차 전환율': n0 ? fmtPct(c2/n0) : '0%',
-          '3회차 도달율': n0 ? fmtPct(c3/n0) : '0%',
-          '주사병행': n0 ? fmtPct(inj/n0) : '0%',
+          '2회차 전환율': n0 ? fmtPct(c2/n0) : '-',
+          '3회차 도달율': n0 ? fmtPct(c3/n0) : '-',
+          '주사병행': n0 ? fmtPct(inj/n0) : '-',
           '평균치료': n0 ? avgt.toFixed(2) : '0.00'
         });
       });
@@ -2019,9 +2281,9 @@ renderMatrix('table5', visitBins, ageCols, (bin, age)=> (keepMat.get(bin)?.get(a
         _rowClass: 'total-row',
         '치료사': '총 합계',
         '신환수': n,
-        '2회차 전환율': n ? fmtPct(convN/n) : '0%',
-        '3회차 도달율': n ? fmtPct(r3N/n) : '0%',
-        '주사병행': n ? fmtPct(comboN/n) : '0%',
+        '2회차 전환율': fmtPct(convN/n),
+        '3회차 도달율': fmtPct(r3N/n),
+        '주사병행': fmtPct(comboN/n),
         '평균치료': n ? avgV.toFixed(2) : '0.00'
       });
 
@@ -2075,10 +2337,10 @@ if(!cohortKeySet.has(r.key)) continue;
           '치료사': x.t,
           '신환 O': x.nO,
           '신환 X': x.nX,
-          '신환 예약 비율': nDen ? fmtPct(x.nO/nDen) : '0%',
+          '신환 예약 비율': fmtPct(x.nO/nDen),
           '재진 O': x.rO,
           '재진 X': x.rX,
-          '재진 예약 비율': rDen ? fmtPct(x.rO/rDen) : '0%',
+          '재진 예약 비율': fmtPct(x.rO/rDen),
           '미기입': x.nM + x.rM
         };
       });
@@ -2097,10 +2359,10 @@ if(!cohortKeySet.has(r.key)) continue;
         '치료사': '총 합계',
         '신환 O': tot8r.nO,
         '신환 X': tot8r.nX,
-        '신환 예약 비율': nDenAll ? fmtPct(tot8r.nO/nDenAll) : '0%',
+        '신환 예약 비율': nDenAll ? fmtPct(tot8r.nO/nDenAll) : '-',
         '재진 O': tot8r.rO,
         '재진 X': tot8r.rX,
-        '재진 예약 비율': rDenAll ? fmtPct(tot8r.rO/rDenAll) : '0%',
+        '재진 예약 비율': rDenAll ? fmtPct(tot8r.rO/rDenAll) : '-',
         '미기입': tot8r.nM + tot8r.rM
       });
 
@@ -2313,7 +2575,7 @@ if(!cohortKeySet.has(r.key)) continue;
       function buildTherapistDistTable(o){
         const t = o.therapist || '미상';
         let html = `<div class="miniCard">`;
-        html += `<div class="miniTitle"><span>${t}</span><span class="miniSub">신환 ${fmtInt(o.totalN)}명</span></div>`;
+        html += `<div class="miniTitle"><span>${t}</span><span class="miniSub">신환 ${fmtCount(o.totalN,'명')}</span></div>`;
         html += `<div class="table-scroll"><table class="mini-table"><thead><tr><th style="width:74px">치료 횟수</th>`;
         ageCols12.forEach(a=>{ html += `<th>${a}</th>`; });
         html += `<th style="width:72px">합계</th></tr></thead><tbody>`;
@@ -2467,7 +2729,7 @@ function buildTherapistFollowTable(tObj){
     <div class="subtableCard">
       <div class="subtableHeader">
         <div class="name">${tObj.therapist}</div>
-        <div class="meta">신환 ${fmtInt(totN)}명</div>
+        <div class="meta">신환 ${fmtCount(totN,'명')}</div>
       </div>
       <div style="overflow-x:auto;">
         <table>${thead}${tbody}</table>
