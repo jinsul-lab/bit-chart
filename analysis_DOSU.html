@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>JINSUL - 전략 분석 시스템 (도수치료) (v 0.0.6.4)</title>
+  <title>JINSUL - 전략 분석 시스템 (도수치료) (v 0.0.6.5)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
@@ -39,7 +39,7 @@
     .price-btn.excl-btn { border-style: dashed; }
     .price-btn.excl-btn.active { background: var(--gray); color: #fff; border-color: var(--gray); box-shadow: none; font-weight: bold; }
 
-    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
     @media (max-width: 980px){ .filter-grid{ grid-template-columns: 1fr; } }
 
     table { width: 100%; border-collapse: collapse; background: transparent; table-layout: fixed; }
@@ -132,7 +132,7 @@
 </style>
 </head>
 <body>
-  <div class="version-tag">v0.0.6.4</div>
+  <div class="version-tag">v0.0.6.5</div>
   <img src="jinsul-logo.png" class="watermark" alt="bg" />
   <header>
     <img src="jinsul-logo.png" alt="logo" />
@@ -207,6 +207,11 @@
       <div id="excludeBtns"></div>
       <div style="font-size:12px;color:var(--gray);margin-top:4px;">※ 제외된 금액으로 시작한 신환은 분석에서 제외됩니다.</div>
     </div>
+    <div>
+      <div style="font-size:13px;color:var(--gray);margin-bottom:6px;">서비스로 볼 치료 금액 (복수 선택)</div>
+      <div id="serviceBtns"></div>
+      <div style="font-size:12px;color:var(--gray);margin-top:4px;">※ 선택한 금액은 “서비스/무료”로 분류되어 <b>서비스 → 유료 전환</b> 지표(표 1-3~1-6)에 반영됩니다.</div>
+    </div>
   </div>
 </div>
 
@@ -215,7 +220,7 @@
       <div class="card"><h2>표 1. 진료실별 치료 횟수</h2><div style="overflow-x:auto;"><table id="table1"></table></div></div>
       <div class="card free-card-main"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><h2 style="margin:0;">표 1-1. Free(기타여부) → 유료 전환 (기타→신환/재진) (전체)</h2><button id="freeToggleBtn" class="price-btn" type="button">펼치기</button></div><div id="freeTablesMain" style="overflow-x:auto;margin-top:8px;"><table id="table1a_free"></table></div></div>
       <div class="card free-card-extra"><h2>표 1-2. Free(기타여부) → 유료 전환 (연령대별)</h2><div style="overflow-x:auto;"><table id="table1b_free_age"></table></div></div>
-      <div class="card free-card-extra"><h2>표 1-3. Free(기타여부) → 유료 전환 (치료사별)</h2><div style="overflow-x:auto;"><table id="table1c_free_ther"></table></div></div>
+      <div class="card free-card-extra"><h2>표 1-3. 서비스(선택 금액) → 유료 전환 (치료사별)</h2><div style="overflow-x:auto;"><table id="table1c_free_ther"></table></div></div>
 
       <div class="card"><h2>표 2. 신환 상세 통계 및 재진 전환율</h2><div style="overflow-x:auto;"><table id="table2"></table></div></div>
 <div class="card"><h2>표 3. 연령대별 도수치료 치료 건수 (성별 비중 포함)</h2><div style="overflow-x:auto;"><table id="table3"></table></div></div>
@@ -266,48 +271,14 @@
       <button class="modal-close" id="closeMetricHelp" type="button" aria-label="닫기">×</button>
     </div>
     <div class="modal-body">
-      <div class="help-section">
-  <h3>핵심 용어</h3>
-  <ul>
-    <li><b>환자 기준</b>: 같은 사람이 여러 번 와도 <b>1명</b>으로 셈.</li>
-    <li><b>방문 기준(=회차/내원 기준)</b>: 같은 사람이 5번 오면 <b>5건</b>으로 셈.</li>
-    <li><b>회차</b>: 같은 환자의 내원 순서(1회차=첫 방문, 2회차=두 번째 방문…).</li>
-    <li><b>신환</b>: 파일에서 ‘신/재’가 <b>신환</b>으로 표기된 내원. (당월 신환 기준 표에서는 “이번 파일에서 신환으로 시작한 환자 cohort”를 뜻함)</li>
-    <li><b>재진</b>: ‘신/재’가 <b>재진</b>으로 표기된 내원.</li>
-    <li><b>기타여부/무료</b>: 보통 <b>0원</b>이거나 ‘기타여부’로 표기된 내원. 표에 따라 <b>“첫 방문이 기타여부(무료)인 환자”</b> 또는 <b>“기타여부 내원 건”</b>으로 집계될 수 있어 표 제목의 기준을 확인.</li>
-    <li><b>전환율</b>: 예) <b>2회차 전환율</b> = 당월 신환 환자 중 2회차 이상 내원한 환자 비율.</li>
-    <li><b>재방문율(D+3/7/14)</b>: <b>첫 치료일 기준</b>으로 2회차가 D+3/7/14일 <b>이내</b>에 발생한 비율. (월요일 치료 → 목요일 내원은 3일)</li>
-    <li><b>도달률(누적)</b>: 예) 4회차 도달률 = 4회차 <b>이상</b> 도달한 환자 비율(누적).</li>
-    <li><b>최빈값/중간값</b>: 최빈값=가장 자주 등장하는 값, 중간값=정렬했을 때 중앙 값.</li>
-    <li><b>예약 O/X</b>: 예약이 <b>O</b> 또는 <b>X</b>로 표기된 값. 같은 방문에 O와 X가 함께 있으면 <b>O 우선</b>.</li>
-    <li><b>미기입</b>: 예약/부위/금액 등 필요한 칸이 비어있는 경우.</li>
-    <li><b>치료 금액 선택/제외</b>: 보고 싶은 금액만 포함(선택)하거나 특정 금액을 빼서(제외) 지표를 다시 계산하는 필터.</li>
-    <li><b>0 값 표기</b>: 숫자 0은 기본적으로 <b>“-”</b>로 표시(“0명” 같은 표기는 만들지 않음).</li>
-  </ul>
-</div>
-
-<div class="help-section">
-  <h3>표 설명</h3>
-  <ul>
-    <li><b>표 1-0 부위별 요약</b>: 도수(DOSU)에서 부위별 <b>환자 수/내원 건수</b> 등을 요약. <b>총 합계 환자 수</b>는 “중복 제거된 고유 환자 수” 기준.</li>
-    <li><b>표 1(부위별 치료)</b>: 부위별 치료 건수, 환자 수, 환자당 평균 치료 횟수, 치료사별 평균 등.</li>
-    <li><b>표 2(요약 KPI)</b>: 신환/재진 요약, 2회차 전환율, D+3/7/14 재방문율 같은 핵심 요약.</li>
-    <li><b>표 3(연령대별)</b>: 연령대별 치료 건수/환자 수 + 성별 분포(남/여 비중).</li>
-    <li><b>표 6(연령대별 치료 횟수 및 비율)</b>: 연령대별 “치료 횟수(회차)” 분포(명 / %).</li>
-    <li><b>표 6-1(연령대별 회차 도달률 (누적))</b>: 연령대별로 특정 회차 이상까지 도달한 누적 비율.</li>
-    <li><b>표 8-1(당월 신환 기준 예약)</b>: 이번 파일에서 신환으로 시작한 환자 cohort만 대상으로 예약 O/X를 집계.</li>
-    <li><b>표 8-2(기존 재진 포함 예약)</b>: 당월 전체 내원(기존환자 재진 포함)을 대상으로 예약 O/X를 집계.</li>
-    <li><b>표 9(첫 치료 → 2회차 재방문 주기)</b>: 첫 치료부터 2회차까지 걸린 기간을 구간별(0-3일 등)로 표시(건수 / %).</li>
-  </ul>
-  <p style="margin-top:8px; color:#555;">
-    ※ 표마다 “환자 기준/방문 기준/당월 신환 기준/전체 기준”이 섞이면 숫자가 달라 보일 수 있어요. 각 표 제목의 기준을 따라 해석하면 됩니다.
-  </p>
-</div>
+      <div id="metricHelpContent"></div>
+    </div>
     </div>
   </div>
 </div>
 
 <script>
+
 
 
     // ---- Percent formatter (global) ----
@@ -408,6 +379,7 @@ function getDroppedFile(dt){
     let amountListFree = [];
     let exclAmtSet = new Set();
     let exclAmtFreeSet = new Set();
+    let serviceAmtSet = new Set(); // 서비스(무료로 간주할) 치료 금액 (복수 선택)
 
     const AGE_BUCKETS = ['10대','20대','30대','40대','50대','60대','70대 이상','미상'];
     const GENDERS = ['남','여','미상'];
@@ -817,6 +789,7 @@ buildData();
         selPVal = -1;
         buildPriceButtons();
         buildExcludeButtons();
+        buildServiceButtons();
         renderAll();
       replaceZeroIndicators();
         };
@@ -980,7 +953,11 @@ buildData();
           .filter(v=>isFinite(v) && v>=0)
       )).sort((a,b)=>a-b);
 
-      exclAmtSet = new Set();
+      
+
+      // 서비스 금액 기본값: 기존 Free(기타여부/0원) 시작 금액들을 서비스로 자동 선택
+      serviceAmtSet = new Set((amountListFree||[]));
+exclAmtSet = new Set();
       exclAmtFreeSet = new Set();
       const hasFreeStart = patientsAll.some(p=>p.freeStart);
       setFreeSectionExpanded(hasFreeStart);
@@ -1147,7 +1124,52 @@ const allKeys = (baseKey===null) ? allKeysRaw : allKeysRaw.filter(k=>k>=baseKey)
       return pats;
     }
 
-    function patientsAfterFreeExclusion(){
+    
+    function buildServiceButtons(){
+      const box = document.getElementById('serviceBtns');
+      if(!box) return;
+      box.innerHTML = '';
+
+      const mkBtn = (label, val) => {
+        const b = document.createElement('button');
+        b.className = 'price-btn svc-btn' + (serviceAmtSet.has(val) ? ' active' : '');
+        b.textContent = label;
+        b.onclick = () => {
+          if(serviceAmtSet.has(val)) serviceAmtSet.delete(val);
+          else serviceAmtSet.add(val);
+          buildServiceButtons();
+          renderAll();
+          replaceZeroIndicators();
+        };
+        return b;
+      };
+
+      const cand = Array.from(new Set([0, ...(amountListAll||[]), ...(amountListFree||[])]))
+        .filter(v=>isFinite(v) && v>=0)
+        .sort((a,b)=>a-b);
+
+      const clear = document.createElement('button');
+      clear.className = 'price-btn';
+      clear.textContent = '선택 해제';
+      clear.onclick = () => {
+        serviceAmtSet = new Set();
+        buildServiceButtons();
+        renderAll();
+        replaceZeroIndicators();
+      };
+      box.appendChild(clear);
+
+      cand.forEach(v => {
+        const isEtc = (amountListFree||[]).includes(v) || v===0;
+        const label = (v===0)
+          ? '0원(기타)'
+          : (v.toLocaleString() + '원' + (isEtc ? '(기타)' : ''));
+        box.appendChild(mkBtn(label, v));
+      });
+    }
+
+
+function patientsAfterFreeExclusion(){
   const hasFree = (exclAmtFreeSet && exclAmtFreeSet.size);
   if(!hasFree) return patientsAll.slice();
 
@@ -1260,6 +1282,7 @@ function buildPriceButtons(){
         rebuildDerived();
         buildPriceButtons();
         buildExcludeButtons();
+        buildServiceButtons();
         renderAll();
       replaceZeroIndicators();
       };
@@ -2630,6 +2653,252 @@ document.getElementById('analysisText').innerHTML = finalLines.map(x=>`<div styl
 
 
 
+
+// -----------------------------
+// Service(무료) 금액 선택 + 전환 지표(표 1-3~1-6)
+// -----------------------------
+function _svcLabel(){
+  const arr = Array.from(serviceAmtSet||[]).filter(v=>isFinite(v)).sort((a,b)=>a-b);
+  if(!arr.length) return '미선택';
+  return arr.map(v => (v===0 ? '0원(기타)' : (v.toLocaleString()+'원'))).join(', ');
+}
+
+function _primaryEntryAmt(p){
+  if(!p || p.firstShockKey===null || p.firstShockKey===undefined) return null;
+  const k = p.firstShockKey;
+  const rows = (p.rows||[]).filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && r.visitKey===k);
+  let am = rows.map(r=>r.amount).filter(v=>isFinite(v));
+  if(am.length) return Math.max(...am);
+  const rows2 = (p.rows||[]).filter(r=>isFinite(r.visitKey) && r.visitKey===k);
+  am = rows2.map(r=>r.amount).filter(v=>isFinite(v));
+  return am.length ? Math.max(...am) : null;
+}
+
+function _serviceInfo(p){
+  const entry = _primaryEntryAmt(p);
+  const start = (serviceAmtSet && serviceAmtSet.size) ? (isFinite(entry) && serviceAmtSet.has(entry)) : false;
+  if(!start) return {serviceStart:false, serviceEntry: entry, converted:false, conversionTo:null, daysToPaid:null};
+
+  const startKey = p.firstShockKey;
+  const vks = Array.from(new Set((p.rows||[]).filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey)).map(r=>r.visitKey))).sort((a,b)=>a-b);
+
+  let convKey = null;
+  let convTo = null;
+
+  for(const vk of vks){
+    if(!isFinite(vk) || vk<=startKey) continue;
+    const rows = (p.rows||[]).filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && r.visitKey===vk);
+    const am = rows.map(r=>r.amount).filter(v=>isFinite(v));
+    if(!am.length) continue;
+    const mx = Math.max(...am);
+    if(!isFinite(mx) || mx<=0) continue;
+    if(serviceAmtSet.has(mx)) continue;
+    convKey = vk;
+    const nfRow = rows.find(r=>toStr(r.newFlag).includes('신환') || toStr(r.newFlag).includes('재진'));
+    const nf = nfRow ? toStr(nfRow.newFlag) : '';
+    convTo = nf.includes('신환') ? '신환' : (nf.includes('재진') ? '재진' : '유료');
+    break;
+  }
+
+  const days = (convKey!==null && isFinite(startKey)) ? Math.round((convKey - startKey)/86400000) : null;
+  return {serviceStart:true, serviceEntry: entry, converted: !!convKey, conversionTo: convTo, daysToPaid: days};
+}
+
+function _setServiceTitles(){
+  const label = _svcLabel();
+  const rep = (txt, no) => txt.replace(new RegExp(`표 ${no}\.\s*(Free\(기타여부\)|서비스\(선택 금액\)|서비스\([^\)]*\))`,'g'), `표 ${no}. 서비스(${label})`);
+  document.querySelectorAll('#mainContent h2').forEach(h=>{
+    const t = (h.textContent||'');
+    if(t.includes('표 1-3.')) h.textContent = rep(t,'1-3');
+    if(t.includes('표 1-4.')) h.textContent = rep(t,'1-4');
+    if(t.includes('표 1-5.')) h.textContent = rep(t,'1-5');
+    if(t.includes('표 1-6.')) h.textContent = rep(t,'1-6');
+  });
+}
+
+function renderServiceConversionTables(){
+  const hasSvc = serviceAmtSet && serviceAmtSet.size;
+  const cards = document.querySelectorAll('.free-card-main, .free-card-extra');
+  if(!hasSvc){
+    cards.forEach(el=>el.style.display='none');
+    return;
+  }
+  cards.forEach(el=>el.style.display='');
+
+  _setServiceTitles();
+
+  const actAll = (typeof patientsAfterFreeExclusion === 'function') ? patientsAfterFreeExclusion() : (patientsAll||[]);
+  const svcAll = actAll.filter(p => _serviceInfo(p).serviceStart);
+  const infoMap = new Map();
+  svcAll.forEach(p => infoMap.set(p.key, _serviceInfo(p)));
+
+  const svcN = svcAll.length;
+  const svcConv = svcAll.filter(p => infoMap.get(p.key).converted);
+  const svcConvN = svcConv.length;
+  const svcRate = svcN ? (svcConvN / svcN) : 0;
+
+  const toNew = svcConv.filter(p => (infoMap.get(p.key).conversionTo||'').includes('신환')).length;
+  const toRe  = svcConv.filter(p => (infoMap.get(p.key).conversionTo||'').includes('재진')).length;
+
+  const daysArr = svcConv.map(p => infoMap.get(p.key).daysToPaid).filter(v=>isFinite(v) && v>=0);
+  const avgDays = daysArr.length ? (daysArr.reduce((a,b)=>a+b,0)/daysArr.length) : null;
+  const medDays = daysArr.length ? median(daysArr) : null;
+  const minDays = daysArr.length ? Math.min(...daysArr) : null;
+  const maxDays = daysArr.length ? Math.max(...daysArr) : null;
+
+  renderKeyValueTable('table1c', [
+    {k:'서비스 금액 선택', v: _svcLabel()},
+    {k:'서비스 시작(첫 방문 치료금액 기준)', v: `${fmtCount(svcN,'명')}`},
+    {k:'서비스 → 유료 전환율', v: svcN ? `${fmtPct(svcRate)}` : '-'},
+    {k:'전환 인원', v: `${fmtCount(svcConvN,'명')}`},
+    {k:'전환 유형', v: `신환 ${fmtCount(toNew,'명')} / 재진 ${fmtCount(toRe,'명')}`},
+    {k:'전환까지 소요일(방문일)', v: daysArr.length ? `평균 ${avgDays.toFixed(1)}일 / 중간 ${medDays}일 (최소 ${minDays}~최대 ${maxDays})` : '-'}
+  ]);
+
+  setFreeSectionExpanded(!!svcN);
+
+  // 연령대별
+  const ageRows = [];
+  AGE_BUCKETS.forEach(a=>{
+    const ps = svcAll.filter(p => (p.ageBucket||'미상')===a);
+    const fn = ps.length;
+    const cn = ps.filter(p=>infoMap.get(p.key).converted).length;
+    ageRows.push({
+      '연령대': a,
+      '서비스 시작': `${fmtCount(fn,'명')}`,
+      '전환': `${fmtCount(cn,'명')}`,
+      '전환율': fn ? fmtPct(cn/fn) : '-'
+    });
+  });
+  renderSimpleTable('table1d', [
+    {k:'연령대',l:'연령대',w:90},
+    {k:'서비스 시작',l:'서비스 시작'},
+    {k:'전환',l:'전환'},
+    {k:'전환율',l:'전환율'}
+  ], ageRows);
+
+  // 부위별
+  const partMap = new Map(PARTS.map(p=>[p,{svc:0, conv:0}]));
+  const addPart = (part, isConv)=>{
+    const k = PARTS.includes(part) ? part : (part==='(미기입)' ? '(미기입)' : '기타');
+    if(!partMap.has(k)) partMap.set(k,{svc:0,conv:0});
+    const o = partMap.get(k);
+    o.svc += 1;
+    if(isConv) o.conv += 1;
+  };
+  svcAll.forEach(p=>{
+    const baseRows = (p.firstShockKey!==null)
+      ? p.rows.filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && r.visitKey===p.firstShockKey)
+      : p.rows.filter(r=>isShock(r.typeRaw));
+    let parts = [];
+    baseRows.forEach(r=>{ parts = parts.concat(extractParts(r.part)); });
+    const uniq = Array.from(new Set(parts.length?parts:['(미기입)']));
+    const isConv = infoMap.get(p.key).converted;
+    uniq.forEach(pt=>addPart(pt, isConv));
+  });
+  const partRows = Array.from(partMap.entries()).map(([pt,o])=>({
+    '부위': pt,
+    '서비스 시작': `${fmtCount(o.svc,'명')}`,
+    '전환': `${fmtCount(o.conv,'명')}`,
+    '전환율': o.svc ? fmtPct(o.conv/o.svc) : '-'
+  }));
+  renderSimpleTable('table1e', [
+    {k:'부위',l:'부위',w:110},
+    {k:'서비스 시작',l:'서비스 시작'},
+    {k:'전환',l:'전환'},
+    {k:'전환율',l:'전환율'}
+  ], partRows);
+
+  // 치료사별
+  const therMap = new Map();
+  svcAll.forEach(p=>{
+    const t = (p.therapist||'미기입');
+    if(!therMap.has(t)) therMap.set(t,{svc:0,conv:0});
+    const o = therMap.get(t);
+    o.svc += 1;
+    if(infoMap.get(p.key).converted) o.conv += 1;
+  });
+  const therRows = Array.from(therMap.entries()).sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([t,o])=>({
+    '치료사': t,
+    '서비스 시작': `${fmtCount(o.svc,'명')}`,
+    '전환': `${fmtCount(o.conv,'명')}`,
+    '전환율': o.svc ? fmtPct(o.conv/o.svc) : '-'
+  }));
+  renderSimpleTable('table1f', [
+    {k:'치료사',l:'치료사',w:90},
+    {k:'서비스 시작',l:'서비스 시작'},
+    {k:'전환',l:'전환'},
+    {k:'전환율',l:'전환율'}
+  ], therRows);
+}
+
+// wrap renderAll so 서비스 전환표/설명 자동 갱신
+(function(){
+  if(typeof renderAll !== 'function') return;
+  const _base = renderAll;
+  renderAll = function(){
+    _base();
+    try{ renderServiceConversionTables(); }catch(e){}
+  };
+})();
+
+// -----------------------------
+// Metric help modal: 표 목록/용어 자동 생성
+// -----------------------------
+function renderMetricHelp(){
+  const box = document.getElementById('metricHelpContent');
+  if(!box) return;
+
+  const terms = [
+    ['환자 기준', '같은 사람이 여러 번 와도 1명으로 셈.'],
+    ['방문 기준(회차/내원 기준)', '같은 사람이 5번 오면 5건으로 셈.'],
+    ['회차', '같은 환자의 내원 순서(1회차=첫 방문).'],
+    ['당월 신환 기준(cohort)', '이번 파일에서 신환으로 시작한 환자 집합(83명 등).'],
+    ['도달률(누적)', '예) 4회차 도달률 = 4회차 이상 도달한 환자 비율.'],
+    ['재방문율(D+3/7/14)', '첫 치료일 기준으로 2회차가 D+3/7/14일 이내에 발생한 비율.'],
+    ['서비스 금액', '0원(기타) 또는 특정 금액(예: 40,000원)을 “무료/서비스”로 간주하도록 선택한 금액.'],
+    ['서비스 → 유료 전환', '서비스 금액으로 시작한 환자가 이후 방문에서 “서비스 금액이 아닌 금액”을 낸 경우(첫 발생 기준).'],
+    ['예약 O/X', '방문(회차) 단위로 집계. 같은 방문에 O와 X가 함께 있으면 O 우선.']
+  ];
+
+  const tableTitles = Array.from(document.querySelectorAll('#mainContent .card h2'))
+    .map(h=> (h.textContent||'').trim())
+    .filter(Boolean);
+
+  const tableExplain = (title)=>{
+    if(title.startsWith('표 1-0')) return '부위별 요약(당월 신환 기준). 총 합계의 “환자 수”는 고유 신환 수로 표시.';
+    if(title.startsWith('표 1.')) return '부위별 치료 건수/환자수/평균 회차 등을 보여줌.';
+    if(title.startsWith('표 2.')) return '신환 상세 통계(재방문/전환/분포 등) 요약.';
+    if(title.startsWith('표 6-1')) return '연령대별 회차 도달률(누적).';
+    if(title.startsWith('표 8-1')) return '치료사별 신환/재진 예약 비율(당월 신환 기준).';
+    if(title.startsWith('표 8-2')) return '치료사별 신환/재진 예약 비율(기존 재진 포함).';
+    if(title.startsWith('표 9.')) return '첫 치료→2회차 재방문 주기 분포(0~3일 포함).';
+    if(title.startsWith('표 1-3')||title.startsWith('표 1-4')||title.startsWith('표 1-5')||title.startsWith('표 1-6')) return '서비스 금액 선택을 기준으로 서비스 시작 인원과 유료 전환을 요약/세분화(연령/부위/치료사).';
+    return '설명 준비중(표 변경 시 자동 목록에는 반영됨).';
+  };
+
+  const termsHtml = terms.map(([k,v])=>`<li><b>${k}</b>: ${v}</li>`).join('');
+  const svcLabel = _svcLabel();
+  const tablesHtml = tableTitles.map(t=>`<li style="margin:6px 0;"><div><b>${t}</b></div><div style="color:var(--gray);font-size:12px;margin-top:2px;">${tableExplain(t)}</div></li>`).join('');
+
+  box.innerHTML = `
+    <div class="help-section">
+      <h3>현재 설정</h3>
+      <ul>
+        <li><b>서비스 금액 선택</b>: ${svcLabel}</li>
+      </ul>
+    </div>
+    <div class="help-section">
+      <h3>핵심 용어</h3>
+      <ul>${termsHtml}</ul>
+    </div>
+    <div class="help-section">
+      <h3>표 설명</h3>
+      <ul style="padding-left:18px;margin:0;">${tablesHtml}</ul>
+    </div>
+  `;
+}
+
 // Metric help modal handlers
 (function(){
   const btn = document.getElementById('openMetricHelp');
@@ -2638,6 +2907,7 @@ document.getElementById('analysisText').innerHTML = finalLines.map(x=>`<div styl
   if(!btn || !modal) return;
 
   function openModal(){
+    try{ renderMetricHelp(); }catch(e){}
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden','false');
     document.body.style.overflow = 'hidden';
