@@ -2079,7 +2079,7 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       };
       freeAll2.forEach(p=>{
         const baseRows = (p.firstShockKey!==null)
-          ? p.rows.filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && r.visitKey===p.firstShockKey)
+          ? p.rows.filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && (Number(r.visitKey)===Number(p.firstShockKey)))
           : p.rows.filter(r=>isShock(r.typeRaw));
         let parts = [];
         baseRows.forEach(r=>{ parts = parts.concat(extractParts(r.part)); });
@@ -2128,7 +2128,7 @@ const PARTS = hasEtcPart ? PARTS_BASE.concat(['기타']) : PARTS_BASE;
       cohort.forEach(p=>{
         const t = (p.therapist||'미기입');
         const baseRows = (p.firstShockKey!==null)
-          ? p.rows.filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && r.visitKey===p.firstShockKey)
+          ? p.rows.filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && (Number(r.visitKey)===Number(p.firstShockKey)))
           : p.rows.filter(r=>isShock(r.typeRaw));
         let parts = [];
         baseRows.forEach(r=>{ parts = parts.concat(extractParts(r.part)); });
@@ -3096,9 +3096,13 @@ function renderServiceConversionTables(){
   ], ageRows);
 
   // 부위별
-  const partMap = new Map(PARTS.map(p=>[p,{svc:0, conv:0}]));
+  // (Fix) PARTS is block-scoped in other render functions; use a safe local list here to avoid ReferenceError.
+  const _PARTS_LOCAL = (typeof PARTS !== 'undefined' && Array.isArray(PARTS) && PARTS.length)
+    ? PARTS
+    : ((typeof PARTS_BASE !== 'undefined' && Array.isArray(PARTS_BASE) && PARTS_BASE.length) ? PARTS_BASE.concat(['기타']) : ['(미기입)','기타']);
+  const partMap = new Map(_PARTS_LOCAL.map(p=>[p,{svc:0, conv:0}]));
   const addPart = (part, isConv)=>{
-    const k = PARTS.includes(part) ? part : (part==='(미기입)' ? '(미기입)' : '기타');
+    const k = _PARTS_LOCAL.includes(part) ? part : (part==='(미기입)' ? '(미기입)' : '기타');
     if(!partMap.has(k)) partMap.set(k,{svc:0,conv:0});
     const o = partMap.get(k);
     o.svc += 1;
@@ -3106,7 +3110,7 @@ function renderServiceConversionTables(){
   };
   svcAll.forEach(p=>{
     const baseRows = (p.firstShockKey!==null)
-      ? p.rows.filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && r.visitKey===p.firstShockKey)
+      ? p.rows.filter(r=>isShock(r.typeRaw) && isFinite(r.visitKey) && (Number(r.visitKey)===Number(p.firstShockKey)))
       : p.rows.filter(r=>isShock(r.typeRaw));
     let parts = [];
     baseRows.forEach(r=>{ parts = parts.concat(extractParts(r.part)); });
