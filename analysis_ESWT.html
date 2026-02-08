@@ -3041,7 +3041,7 @@ function buildTherapistFollowTable(tObj){
   const medT = allDays.length ? median(allDays) : null;
   const recT = recFor(totN, oneRateT, r7RateT);
 
-  const thead = `<thead><tr><th style="width:160px;">구분</th>` +
+  const thead = `<thead><tr><th style="width:160px;">${toStr(tObj.therapist)}</th>` +
     cols.map(c=>`<th>${c}</th>`).join('') +
     `<th class="total-col">전체</th></tr></thead>`;
 
@@ -3086,16 +3086,13 @@ function buildTherapistFollowTable(tObj){
 
   return `
     <div class="subtableCard">
-      <div class="subtableHeader">
-        <div class="name">${tObj.therapist}</div>
-        <div class="meta">신환 ${fmtCount(totN,'명')}</div>
-      </div>
       <div style="overflow-x:auto;">
         <table>${thead}${tbody}</table>
       </div>
     </div>
   `;
 }
+
 
 const t13List = Array.from(t13Map.values()).sort((a,b)=>toStr(a.therapist).localeCompare(toStr(b.therapist),'ko'));
 if(t13List.length===0){
