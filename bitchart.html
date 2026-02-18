@@ -42,7 +42,7 @@
     
     /* 메인 카드 및 표 투명화 (워터마크 비침 효과) */
     .card {
-      background: rgba(255,255,255, 0.15) !important; 
+      background: rgba(255,255,255, 0.10) !important; 
       backdrop-filter: blur(1px); /* 가독성을 위한 배경 흐림 */
       border: 1px solid var(--border); border-radius:14px; padding:14px;
       box-shadow: 0 2px 6px rgba(0,0,0,.05); margin-top:12px;
@@ -98,10 +98,6 @@
       th,td{font-size:11px}
       .btnrow{justify-content:flex-start}
     }
-
-
-        footer { width: 100%; text-align: center; padding: 50px 0; font-size: 12px; color: #888; background: transparent; font-weight: 600; }
-    
   </style>
 </head>
 <body>
@@ -182,8 +178,6 @@
       </div>
     </div>
   </div>
-  
-<footer>© JINSUL · 경험과 가치를 현실화하는 컨설팅</footer>
 
 <script>
   /* ================= 공통 유틸 ================= */
@@ -677,6 +671,39 @@
       "5회 내원 비율","6회 내원 비율","7회 내원 비율","8회 이상 내원 비율",
       "특정 키워드 포함 메모 수"
     ].filter(c=>c in rows[0]);
+    // ✅ 진료실 평균(균등): 진료실별 지표를 동일 가중치로 평균낸 보조 "전체"
+    const roomRows = rows.filter(r=>/진료실$/.test(r["구분"]) && r["구분"]!=="전체");
+    if(roomRows.length){
+      const avgRow = {"구분":"진료실 평균(균등)"};
+      const countCols = new Set(["초진","초진주사","(18세▲)초진","(18세▲)초진주사","특정 키워드 포함 메모 수"]);
+      cols.forEach(c=>{
+        if(c==="구분") return;
+        if(countCols.has(c)){ avgRow[c] = "-"; return; }
+        const raw = roomRows.map(r=>r[c]).filter(v=>v!==undefined && v!==null && v!=="" && v!=="-");
+        if(!raw.length){ avgRow[c] = "-"; return; }
+
+        // % 형태
+        const hasPct = raw.some(v=>typeof v==="string" && v.includes("%"));
+        if(hasPct){
+          const nums = raw.map(v=>parseFloat(String(v).replace("%",""))).filter(n=>!isNaN(n));
+          if(!nums.length){ avgRow[c] = "-"; return; }
+          const mean = nums.reduce((a,b)=>a+b,0) / nums.length;
+          avgRow[c] = Math.round(mean) + "%";
+          return;
+        }
+
+        // 숫자(평균/횟수 등)
+        const nums = raw.map(v=>parseFloat(String(v))).filter(n=>!isNaN(n));
+        if(!nums.length){ avgRow[c] = "-"; return; }
+        const mean = nums.reduce((a,b)=>a+b,0) / nums.length;
+        const needOneDecimal = c.includes("평균");
+        avgRow[c] = needOneDecimal ? mean.toFixed(1) : String(Math.round(mean));
+      });
+
+      const totalIdx = rows.findIndex(r=>r["구분"]==="전체");
+      if(totalIdx >= 0) rows.splice(totalIdx+1, 0, avgRow);
+      else rows.push(avgRow);
+    }
     let thead='<tr>'+cols.map(h=>`<th>${h}</th>`).join('')+'</tr>';
     let tbody=rows.map(r=>'<tr>'+cols.map(c=>`<td>${formatCell(r[c])}</td>`).join('')+'</tr>').join('');
     document.getElementById('summaryOutput').innerHTML=`<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
