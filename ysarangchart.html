@@ -85,7 +85,7 @@
   <header>
     <img src="jinsul-logo.png" alt="JINSUL" class="logo" />
     <h1>의사랑 연령별 통계</h1>
-    <p class="sub">진료실별 연령 통계 및 주사·내원 현황.</p>
+    <p class="sub">진료실별 연령 통계 및 초진 당일 주사·내원 현황.</p>
   </header>
 
   <div class="wrap">
@@ -107,7 +107,7 @@
         </div>
         <div>
           <label>주사 파일</label>
-          <label>리도카인, 엠카인 등 병원에서 쓰는 마취제 받아주세요</label>
+          <label>리도카인, 엠카인 등 마취제 파일 / 초진일과 같은 주사일만 인정됩니다</label>
           <label>❤️진료실별로 받지 않아도 됩니다❤️</label>     
           <input type="file" id="bFile" accept=".xlsx,.xls" />
         </div>
@@ -133,7 +133,7 @@
     <!-- 상단 요약 지표 -->
     <div class="summary" id="summary" style="display:none">
       <div class="metric"><h3>전체 초진환자수</h3><p id="m-total">-</p></div>
-      <div class="metric"><h3>초진 주사처방률</h3><p id="m-inj-rate">-</p></div>
+      <div class="metric"><h3>초진 당일 주사처방률</h3><p id="m-inj-rate">-</p></div>
       <div class="metric"><h3>초진 평균 내원횟수</h3><p id="m-visit-avg">-</p></div>
       <div class="metric"><h3>재내원율(2회 이상)</h3><p id="m-revisit">-</p></div>
     </div>
@@ -273,6 +273,51 @@
       return countMap;
     }
 
+
+
+    // 차트번호+날짜 기준 집계: 초진 당일 주사 여부 판정용
+    // 같은 환자·같은 날짜에 주사 처방이 여러 줄 있어도 1회 방문으로 계산
+    function buildCountMapByIdDateHeader(data, idHeaderCandidates, dateHeaderCandidates) {
+      const countMap = {};
+      if (!data || !data.length) return countMap;
+
+      let headerRow = null, headerIdx = -1;
+      for (let i=0;i<Math.min(15, data.length);i++){
+        const row = data[i] || [];
+        const joined = row.map(x=>String(x||'')).join('');
+        if (/(차트|챠트|ID|아이디)/i.test(joined) || /(진료일|내원일|방문일|일자|수납일)/.test(joined)) {
+          headerRow = row; headerIdx = i; break;
+        }
+      }
+      if (!headerRow) headerRow = data[0], headerIdx = 0;
+
+      const headersLower = headerRow.map(h => String(h||'').toLowerCase());
+      const findIdx = (cands) => {
+        for (const c of cands) {
+          const idx = headersLower.findIndex(h => h.includes(c));
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      };
+
+      const idIdx   = findIdx(idHeaderCandidates.map(s=>s.toLowerCase()));
+      const dateIdx = findIdx(dateHeaderCandidates.map(s=>s.toLowerCase()));
+      if (idIdx === -1 || dateIdx === -1) return countMap;
+
+      const seen = new Set();
+      const rows = data.slice(headerIdx+1);
+      rows.forEach(r=>{
+        const id = r[idIdx]?.toString().trim();
+        const date = excelDateToISO(r[dateIdx]);
+        if (!id || !date) return;
+        const key = id + '_' + date;
+        if (seen.has(key)) return;
+        seen.add(key);
+        countMap[key] = (countMap[key]||0)+1;
+      });
+      return countMap;
+    }
+
     const toPercent = (a,b) => b ? Math.round(a/b*100)+'%' : '0%';
     const average = (arr) => arr.length ? arr.reduce((x,y)=>x+y,0)/arr.length : 0;
     function fmt(v){
@@ -290,10 +335,10 @@
       merged.forEach(r=>{ (byRoom[r.room]??=([])).push(r); });
       const result=[];
       for(const [label, total] of Object.entries(byRoom)){
-        const inj = total.filter(r=>r.inj>0);
+        const inj = total.filter(r=>r.firstDayInj>0);
         const adult = total.filter(r=>(r.age??0)>=18);
-        const adultInj = adult.filter(r=>r.inj>0);
-        const avgInj = average(inj.map(r=>r.inj));
+        const adultInj = adult.filter(r=>r.firstDayInj>0);
+        const avgInj = average(inj.map(r=>r.injTotal));
         const avgVisitAmongInj = average(inj.map(r=>r.visit));
         const visitAvgAll = average(total.map(r=>r.visit));
         const cnt1 = total.filter(r=>r.visit===1).length;
@@ -309,15 +354,15 @@
         result.push({
           '구분':label,
           '초진환자수':total.length,
-          '초진주사환자수':inj.length,
-          '초진 주사처방률':toPercent(inj.length,total.length),
-          '초진 주사환자 평균 주사횟수':inj.length?avgInj.toFixed(1):'-',
-          '초진 주사환자 평균내원횟수':inj.length?avgVisitAmongInj.toFixed(1):'-',
+          '초진 주사환자수':inj.length,
+          '초진 당일 주사처방률':toPercent(inj.length,total.length),
+          '초진 주사치료 평균 주사횟수':inj.length?avgInj.toFixed(2):'-',
+          '초진 주사치료 평균 내원횟수':inj.length?avgVisitAmongInj.toFixed(2):'-',
           '초진 주사환자 재진률(2회 이상)':inj.length?toPercent(revisit2pInj,inj.length):'-',
           '(18세▲)초진환자수':adult.length,
-          '(18세▲)초진주사수':adultInj.length,
-          '(18세▲)초진주사처방률':adult.length?toPercent(adultInj.length,adult.length):'-',
-          '초진 평균 내원횟수':total.length?visitAvgAll.toFixed(1):'-',
+          '(18세▲)초진 주사수':adultInj.length,
+          '(18세▲)초진 주사처방률':adult.length?toPercent(adultInj.length,adult.length):'-',
+          '초진 평균 내원횟수':total.length?visitAvgAll.toFixed(2):'-',
           '초진 재내원율':toPercent(revisit2pAll,total.length),
           '1회 내원율':toPercent(cnt1,total.length),
           '2회 내원율':toPercent(cnt2,total.length),
@@ -370,24 +415,24 @@ function computeAgeBandStats(merged){
     for (const band of ORDER_BANDS){
       const a = byBand[band] || [];
       if (!a.length) continue;
-      const inj = a.filter(x=>x.inj>0);
+      const inj = a.filter(x=>x.firstDayInj>0);
       const injN = inj.length;
-      const avgInj = injN ? average(inj.map(x=>x.inj)) : 0;
+      const avgInj = injN ? average(inj.map(x=>x.injTotal)) : 0;
       const avgVisit = average(a.map(x=>x.visit));
       const revisit2p = a.filter(x=>x.visit>=2).length;
 
-      const cnt = (n)=>inj.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
+      const cnt = (n)=>inj.filter(x=> n===8 ? x.injTotal>=8 : x.injTotal===n).length;
       const rate = (n)=>toPercent(cnt(n), injN);
 
       rows.push({
         '진료실': label,
         '연령대': band,
         '초진환자수': a.length,
-        '초진주사환자수': injN,
-        '초진 주사처방률': toPercent(injN, a.length),
-        '초진 평균 내원횟수': avgVisit.toFixed(1),
+        '초진 주사환자수': injN,
+        '초진 당일 주사처방률': toPercent(injN, a.length),
+        '초진 평균 내원횟수': avgVisit.toFixed(2),
         '초진 재내원율(2회 이상)': toPercent(revisit2p, a.length),
-        '초진 주사환자 평균 주사횟수': avgInj.toFixed(1),
+        '초진 주사치료 평균 주사횟수': avgInj.toFixed(2),
         '주사 1회(%)': rate(1),
         '2회(%)': rate(2),
         '3회(%)': rate(3),
@@ -401,24 +446,24 @@ function computeAgeBandStats(merged){
 
     // 그 다음, 해당 진료실의 ‘전체’ 합계 행을 맨 아래에
     if (arr.length){
-      const injAll = arr.filter(x=>x.inj>0);
+      const injAll = arr.filter(x=>x.firstDayInj>0);
       const injAllN = injAll.length;
-      const avgInjAll = injAllN ? average(injAll.map(x=>x.inj)) : 0;
+      const avgInjAll = injAllN ? average(injAll.map(x=>x.injTotal)) : 0;
       const avgVisitAll = average(arr.map(x=>x.visit));
       const revisit2pAll = arr.filter(x=>x.visit>=2).length;
 
-      const cntA = (n)=>injAll.filter(x=> n===8 ? x.inj>=8 : x.inj===n).length;
+      const cntA = (n)=>injAll.filter(x=> n===8 ? x.injTotal>=8 : x.injTotal===n).length;
       const rateA = (n)=>toPercent(cntA(n), injAllN);
 
       rows.push({
         '진료실': label,
         '연령대': '전체',
         '초진환자수': arr.length,
-        '초진주사환자수': injAllN,
-        '초진 주사처방률': toPercent(injAllN, arr.length),
-        '초진 평균 내원횟수': avgVisitAll.toFixed(1),
+        '초진 주사환자수': injAllN,
+        '초진 당일 주사처방률': toPercent(injAllN, arr.length),
+        '초진 평균 내원횟수': avgVisitAll.toFixed(2),
         '초진 재내원율(2회 이상)': toPercent(revisit2pAll, arr.length),
-        '초진 주사환자 평균 주사횟수': avgInjAll.toFixed(1),
+        '초진 주사치료 평균 주사횟수': avgInjAll.toFixed(2),
         '주사 1회(%)': rateA(1),
         '2회(%)': rateA(2),
         '3회(%)': rateA(3),
@@ -550,6 +595,7 @@ function computeAgeBandStats(merged){
 
         const idIdx   = findHeaderIndex(headersLower, ['차트','챠트','id','아이디']);
         const rrnIdx  = findHeaderIndex(headersLower, ['주민','생년','생일','생년월일','생년월','rrn','등록번호']);
+        const dateIdx = findHeaderIndex(headersLower, ['진료일','초진일','내원일','방문일','일자','수납일']);
 
         const rows = room.data.slice(headerIndex+1).filter(r => Array.isArray(r) && r.length > 0);
 
@@ -558,6 +604,8 @@ function computeAgeBandStats(merged){
           if (!id) return;
 
           const rrnRaw = rrnIdx>=0 ? (r[rrnIdx]?.toString().trim()||'') : '';
+          const firstDate = dateIdx>=0 ? excelDateToISO(r[dateIdx]) : '';
+          if (!firstDate) return;
           // 나이 추정
           let age = null;
           if (rrnRaw && rrnRaw.includes('-')) age = calculateAge(rrnRaw);
@@ -569,12 +617,20 @@ function computeAgeBandStats(merged){
           if (seen.has(key)) return;
           seen.add(key);
 
-          clinicRows.push({ id, age, room: room.name });
+          clinicRows.push({ id, age, room: room.name, firstDate });
         });
       });
 
       // ===== 주사/방문 횟수: 헤더 기반 집계 =====
       const bMap = fileMap.b
+        ? buildCountMapByIdDateHeader(fileMap.b,
+            ['차트','챠트','id','아이디'],
+            ['진료일','내원일','방문일','일자','수납일'])
+        : {};
+
+      // 전체 주사횟수는 기존 기준처럼 환자별 '서로 다른 주사일자 수'로 집계
+      // 단, 초진주사환자 여부는 아래 merged에서 초진일자와 주사일자가 같은 경우만 인정
+      const bTotalMap = fileMap.b
         ? buildCountMapByHeader(fileMap.b,
             ['차트','챠트','id','아이디'],
             ['진료일','내원일','방문일','일자','수납일'])
@@ -586,8 +642,12 @@ function computeAgeBandStats(merged){
         : {};
 
       const merged = clinicRows.map(r=>({
-        id:r.id, age:r.age, room:r.room,
-        inj:bMap[r.id]||0, visit:vMap[r.id]||0
+        id:r.id, age:r.age, room:r.room, firstDate:r.firstDate,
+        // firstDayInj: 초진일자와 주사일자가 같은 경우만 1 이상
+        // injTotal: 해당 주사파일 기간 내 환자별 전체 주사일수(평균 주사횟수/회차분포용)
+        firstDayInj:bMap[r.id + '_' + r.firstDate]||0,
+        injTotal:bTotalMap[r.id]||0,
+        visit:vMap[r.id]||0
       }));
 
       const stats = computeStats(merged);
@@ -597,7 +657,7 @@ function computeAgeBandStats(merged){
       if (overall){
         $('#summary').style.display='grid';
         $('#m-total').textContent=fmt(overall['초진환자수']);
-        $('#m-inj-rate').textContent=fmt(overall['초진 주사처방률']);
+        $('#m-inj-rate').textContent=fmt(overall['초진 당일 주사처방률']);
         $('#m-visit-avg').textContent=fmt(overall['초진 평균 내원횟수']);
         $('#m-revisit').textContent=fmt(overall['초진 재내원율']);
       }
