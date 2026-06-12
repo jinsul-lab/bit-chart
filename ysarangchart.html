@@ -49,6 +49,9 @@
     .grid{display:grid; gap:10px; grid-template-columns:1fr 1fr 1fr auto}
     label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
     input[type=file]{width:100%; padding:10px; border-radius:10px; border:1px dashed var(--border); background:rgba(255,255,255,0.4); color:var(--text)}
+    input[type=date]{width:100%; height:38px; padding:8px 10px; border-radius:10px; border:1px solid var(--border); background:rgba(255,255,255,0.55); color:var(--text)}
+    .date-grid{display:grid; gap:10px; grid-template-columns:1fr 1fr auto; align-items:end; margin-top:12px}
+    @media (max-width: 760px){.grid,.date-grid{grid-template-columns:1fr}.right{justify-content:flex-start}}
     button{height:38px; border-radius:10px; border:1px solid var(--border);
       background:radial-gradient(120% 120% at 0% 0%,rgba(34,211,238,.25),rgba(34,211,238,.1));
       color:#0f172a; font-weight:700; cursor:pointer; padding:0 12px;}
@@ -122,6 +125,21 @@
 
         </div>
       </div>
+      <div class="date-grid">
+        <div>
+          <label>조회 시작일</label>
+          <input type="date" id="startDate" />
+        </div>
+        <div>
+          <label>조회 종료일</label>
+          <input type="date" id="endDate" />
+        </div>
+        <div class="right">
+          <button id="clearDateBtn" type="button">기간 초기화</button>
+        </div>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin:8px 0 0">📅 기간을 선택하면 해당 기간 안의 초진일·주사일·내원일만 기준으로 통계가 계산됩니다. 비워두면 전체 기간으로 계산됩니다.</p>
+
       <div class="right" style="margin-top:8px">
         <button id="toggleCompactBtn" title="표를 한 페이지로 보기">컴팩트 보기</button>
         <button id="downloadBtn" disabled>결과 다운로드(.xlsx)</button>
@@ -177,7 +195,32 @@
         const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,'0'), d=String(v.getDate()).padStart(2,'0');
         return `${y}-${m}-${d}`;
       }
+
       return String(v);
+    }
+
+    function normalizeDateInput(v){
+      if (!v) return '';
+      const s = String(v).trim();
+      const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? s : excelDateToISO(s);
+    }
+
+    function isDateInRange(date, startDate, endDate){
+      const d = normalizeDateInput(date);
+      if (!d) return false;
+      const s = normalizeDateInput(startDate);
+      const e = normalizeDateInput(endDate);
+      if (s && d < s) return false;
+      if (e && d > e) return false;
+      return true;
+    }
+
+    function getSelectedDateRange(){
+      return {
+        startDate: $('#startDate')?.value || '',
+        endDate: $('#endDate')?.value || ''
+      };
     }
 
     function calculateAge(rrn) {
@@ -230,7 +273,7 @@
     }
 
     // 헤더 자동 탐지 빌더: id/날짜 헤더 후보를 보고 열 인덱스 찾아서 카운트
-    function buildCountMapByHeader(data, idHeaderCandidates, dateHeaderCandidates) {
+    function buildCountMapByHeader(data, idHeaderCandidates, dateHeaderCandidates, startDate='', endDate='') {
       const countMap = {};
       if (!data || !data.length) return countMap;
 
@@ -265,6 +308,7 @@
         const id = r[idIdx]?.toString().trim();
         const date = excelDateToISO(r[dateIdx]);
         if (!id || !date) return;
+        if (!isDateInRange(date, startDate, endDate)) return;
         const u = id + '_' + date;
         if (seen.has(u)) return;
         seen.add(u);
@@ -277,7 +321,7 @@
 
     // 차트번호+날짜 기준 집계: 초진 당일 주사 여부 판정용
     // 같은 환자·같은 날짜에 주사 처방이 여러 줄 있어도 1회 방문으로 계산
-    function buildCountMapByIdDateHeader(data, idHeaderCandidates, dateHeaderCandidates) {
+    function buildCountMapByIdDateHeader(data, idHeaderCandidates, dateHeaderCandidates, startDate='', endDate='') {
       const countMap = {};
       if (!data || !data.length) return countMap;
 
@@ -310,6 +354,7 @@
         const id = r[idIdx]?.toString().trim();
         const date = excelDateToISO(r[dateIdx]);
         if (!id || !date) return;
+        if (!isDateInRange(date, startDate, endDate)) return;
         const key = id + '_' + date;
         if (seen.has(key)) return;
         seen.add(key);
@@ -584,6 +629,7 @@ function computeAgeBandStats(merged){
 
     function runAnalysis(fileMap){
       const seen=new Set(); const clinicRows=[];
+      const { startDate, endDate } = getSelectedDateRange();
 
       // ===== 초진(진료실별) 파싱: 헤더 자동 탐지 =====
       fileMap.clinic.forEach(room=>{
@@ -606,6 +652,7 @@ function computeAgeBandStats(merged){
           const rrnRaw = rrnIdx>=0 ? (r[rrnIdx]?.toString().trim()||'') : '';
           const firstDate = dateIdx>=0 ? excelDateToISO(r[dateIdx]) : '';
           if (!firstDate) return;
+          if (!isDateInRange(firstDate, startDate, endDate)) return;
           // 나이 추정
           let age = null;
           if (rrnRaw && rrnRaw.includes('-')) age = calculateAge(rrnRaw);
@@ -625,7 +672,8 @@ function computeAgeBandStats(merged){
       const bMap = fileMap.b
         ? buildCountMapByIdDateHeader(fileMap.b,
             ['차트','챠트','id','아이디'],
-            ['진료일','내원일','방문일','일자','수납일'])
+            ['진료일','내원일','방문일','일자','수납일'],
+            startDate, endDate)
         : {};
 
       // 전체 주사횟수는 기존 기준처럼 환자별 '서로 다른 주사일자 수'로 집계
@@ -633,12 +681,14 @@ function computeAgeBandStats(merged){
       const bTotalMap = fileMap.b
         ? buildCountMapByHeader(fileMap.b,
             ['차트','챠트','id','아이디'],
-            ['진료일','내원일','방문일','일자','수납일'])
+            ['진료일','내원일','방문일','일자','수납일'],
+            startDate, endDate)
         : {};
       const vMap = fileMap.v
         ? buildCountMapByHeader(fileMap.v,
             ['차트','챠트','id','아이디'],
-            ['진료일','내원일','방문일','일자','수납일'])
+            ['진료일','내원일','방문일','일자','수납일'],
+            startDate, endDate)
         : {};
 
       const merged = clinicRows.map(r=>({
@@ -649,6 +699,14 @@ function computeAgeBandStats(merged){
         injTotal:bTotalMap[r.id]||0,
         visit:vMap[r.id]||0
       }));
+
+      if (!merged.length){
+        $('#summary').style.display='none';
+        $('#output').innerHTML = '<p style="color:var(--muted);font-size:13px;margin:0">선택한 기간에 해당하는 초진 데이터가 없습니다.</p>';
+        $('#byAgeOutput').innerHTML = '';
+        $('#downloadBtn').disabled=true;
+        return;
+      }
 
       const stats = computeStats(merged);
       const byAge = computeAgeBandStats(merged);
@@ -694,8 +752,13 @@ function computeAgeBandStats(merged){
 
     // 이벤트
     $('#runBtn').addEventListener('click', processFiles);
+    $('#clearDateBtn').addEventListener('click', ()=>{
+      $('#startDate').value=''; $('#endDate').value='';
+    });
+
     $('#clearBtn').addEventListener('click', ()=>{
       $('#clinicFiles').value=''; $('#bFile').value=''; $('#vFile').value='';
+      $('#startDate').value=''; $('#endDate').value='';
       $('#output').innerHTML=''; $('#byAgeOutput').innerHTML='';
       $('#summary').style.display='none'; $('#downloadBtn').disabled=true;
     });
