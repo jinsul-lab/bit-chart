@@ -143,6 +143,21 @@
         </div>
       </div>
 
+      <div style="margin-top:10px; display:grid; gap:10px; grid-template-columns: 1fr 1fr auto; align-items:end;">
+        <div>
+          <label>통계 기간 시작일(선택)</label>
+          <input type="date" id="startDateInput" />
+        </div>
+        <div>
+          <label>통계 기간 종료일(선택)</label>
+          <input type="date" id="endDateInput" />
+        </div>
+        <div class="btnrow" style="justify-content:flex-end">
+          <button id="applyDateBtn" class="secondary" type="button">기간 적용</button>
+          <button id="resetDateBtn" class="secondary" type="button">전체 기간</button>
+        </div>
+      </div>
+      <p id="dateRangeStatus" style="color:var(--muted);font-size:12px;margin:8px 0 0">통계 기간: 전체</p>
       <p style="color:var(--muted);font-size:12px;margin:8px 0 0">⚠️ 모든 데이터는 브라우저 내에서만 처리됩니다.</p>
     </div>
 
@@ -182,7 +197,7 @@
 <script>
   /* ================= 공통 유틸 ================= */
   const AGE_ORDER = ["0~10대","20대","30대","40대","50대","60대","70대이상","전체"];
-  const state = { df:null, col:null, oneshotRows:[], oneshotNewRows:[], oneshotMode:'all', routeMap:null };
+  const state = { df:null, col:null, oneshotRows:[], oneshotNewRows:[], oneshotMode:'all', routeMap:null, rawData:null, keyword:'' };
 
   function pad2(n){ return String(n).padStart(2,'0'); }
   
@@ -235,6 +250,34 @@
     if(m2) return `${m2[1]}-${pad2(m2[2])}-${pad2(m2[3])}`;
     
     return s;
+  }
+
+  function isDateInRange(dateValue, start, end){
+    const d = normalizeVisitDate(dateValue);
+    if(!d) return false;
+    if(start && d < start) return false;
+    if(end && d > end) return false;
+    return true;
+  }
+
+  function updateDateRangeStatus(start, end, total, kept, hasDateCol){
+    const el = document.getElementById('dateRangeStatus');
+    if(!el) return;
+    if(!start && !end){
+      el.textContent = `통계 기간: 전체 (${total}건)`;
+      return;
+    }
+    const label = `${start || '처음'} ~ ${end || '마지막'}`;
+    el.textContent = hasDateCol ? `통계 기간: ${label} (${kept}건 / 전체 ${total}건)` : `통계 기간: ${label} · 내원일 컬럼을 찾지 못해 전체로 계산됨`;
+  }
+
+  function rerunWithCurrentOptions(){
+    if(!state.rawData){
+      alert('먼저 외래환자 파일을 업로드해주세요.');
+      return;
+    }
+    state.keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
+    parseData(state.rawData, state.keyword);
   }
 
   function normHeader(h){
@@ -526,6 +569,14 @@
       }
     });
 
+    const startDate = document.getElementById('startDateInput') ? document.getElementById('startDateInput').value : '';
+    const endDate = document.getElementById('endDateInput') ? document.getElementById('endDateInput').value : '';
+    let workingDf = df;
+    if((startDate || endDate) && col['내원일']){
+      workingDf = df.filter(r=>isDateInRange(r[col['내원일']], startDate, endDate));
+    }
+    updateDateRangeStatus(startDate, endDate, df.length, workingDf.length, !!col['내원일']);
+
     const result=[];
     function makeStat(rows, label, ageGroup="전체"){
       const 초진 = rows.filter(r=>["신환","90일초진"].includes(r[col['초재']]));
@@ -543,10 +594,10 @@
       });
 
       const 평균주사 = Object.keys(주사횟수).length
-        ? (Object.values(주사횟수).reduce((a,b)=>a+b,0)/Object.keys(주사횟수).length).toFixed(1) : 0;
+        ? (Object.values(주사횟수).reduce((a,b)=>a+b,0)/Object.keys(주사횟수).length).toFixed(2) : 0;
 
       const 평균내원 = Object.keys(내원횟수).length
-        ? (Object.values(내원횟수).reduce((a,b)=>a+b,0)/Object.keys(내원횟수).length).toFixed(1) : 0;
+        ? (Object.values(내원횟수).reduce((a,b)=>a+b,0)/Object.keys(내원횟수).length).toFixed(2) : 0;
 
       const injRevisitRate = Object.keys(내원횟수).length
         ? Math.round((Object.values(내원횟수).filter(v=>v>=2).length/Object.keys(내원횟수).length)*100)+'%' : '-';
@@ -555,7 +606,7 @@
       const 초진내원={};
       초진기록.forEach(r=>{ const id=r[col['차트']]; 초진내원[id]=(초진내원[id]||0)+1; });
       const 평균초진내원 = Object.keys(초진내원).length
-        ? (Object.values(초진내원).reduce((a,b)=>a+b,0)/Object.keys(초진내원).length).toFixed(1) : 0;
+        ? (Object.values(초진내원).reduce((a,b)=>a+b,0)/Object.keys(초진내원).length).toFixed(2) : 0;
       const 재내원수 = Object.values(초진내원).filter(v=>v>=2).length;
       const visitRatio = (n,op="eq")=>{
         const denom=Object.keys(초진내원).length; if(!denom) return 0;
@@ -628,15 +679,15 @@
       return;
     }
 
-    const 전체=df;
+    const 전체=workingDf;
     if(col['연령']){
       AGE_ORDER.slice(0,-1).forEach(a=>makeStat(전체.filter(r=>getAgeGroup(r[col['연령']])===a), "전체", a));
     }
     makeStat(전체, "전체", "전체");
 
-    const 진료과들 = [...new Set(df.map(r=>(r[col['과']] ?? '').toString().trim()).filter(Boolean))];
+    const 진료과들 = [...new Set(workingDf.map(r=>(r[col['과']] ?? '').toString().trim()).filter(Boolean))];
     진료과들.forEach(과=>{
-      const rows=df.filter(r=>(r[col['과']] ?? '').toString().trim()===과);
+      const rows=workingDf.filter(r=>(r[col['과']] ?? '').toString().trim()===과);
       if(col['연령']){
         AGE_ORDER.slice(0,-1).forEach(a=>makeStat(rows.filter(r=>getAgeGroup(r[col['연령']])===a), 과, a));
       }
@@ -646,9 +697,9 @@
     renderSummaryTable(result);
     renderAgeTable(result);
 
-    const ones = extractInjOnceList(df, col);
-    const onesNew = extractNewpatientInjOnceList(df, col);
-    state.df=df; state.col=col; state.oneshotRows=ones; state.oneshotNewRows=onesNew; state.oneshotMode='all';
+    const ones = extractInjOnceList(workingDf, col);
+    const onesNew = extractNewpatientInjOnceList(workingDf, col);
+    state.df=workingDf; state.col=col; state.oneshotRows=ones; state.oneshotNewRows=onesNew; state.oneshotMode='all';
     document.getElementById('oneshotBtn').disabled = false;
     document.getElementById('oneshotDlBtn').disabled = false;
   }
@@ -696,8 +747,8 @@
         const nums = raw.map(v=>parseFloat(String(v))).filter(n=>!isNaN(n));
         if(!nums.length){ avgRow[c] = "-"; return; }
         const mean = nums.reduce((a,b)=>a+b,0) / nums.length;
-        const needOneDecimal = c.includes("평균");
-        avgRow[c] = needOneDecimal ? mean.toFixed(1) : String(Math.round(mean));
+        const needTwoDecimal = c.includes("평균");
+        avgRow[c] = needTwoDecimal ? mean.toFixed(2) : String(Math.round(mean));
       });
 
       const totalIdx = rows.findIndex(r=>r["구분"]==="전체");
@@ -851,6 +902,8 @@
           rawData = rawData.concat(rows);
         });
       }
+      state.rawData = rawData;
+      state.keyword = keyword;
       parseData(rawData, keyword);
     }catch(err){
       console.error(err);
@@ -887,6 +940,14 @@
       btn.disabled=true;
       document.getElementById('warning').innerText='❗ 내원경로 파일을 읽는 중 문제가 발생했습니다. (형식/인코딩 확인)';
     }
+  });
+
+  /* ================= 기간 선택 이벤트 ================= */
+  document.getElementById('applyDateBtn').addEventListener('click', rerunWithCurrentOptions);
+  document.getElementById('resetDateBtn').addEventListener('click', ()=>{
+    document.getElementById('startDateInput').value='';
+    document.getElementById('endDateInput').value='';
+    rerunWithCurrentOptions();
   });
 
   /* ================= 버튼 이벤트 ================= */
